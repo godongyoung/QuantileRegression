@@ -36,6 +36,11 @@ my_hist=function(inp_data,true_value,inp_text){
   abline(v=true_value,col=2,lwd=3)
 }
 
+get_validmat=function(mat){
+  mat=mat[!is.na(mat[,1]),]  
+  return (mat)
+}
+
 GAL_QR=function(y,X,p0){
   # set.seed(20210305)
   
@@ -224,6 +229,7 @@ gen_truebeta=function(type,p0){
   return (to_add)  
 }
 
+
 total_df=list()
 P=3
 # type='N'
@@ -236,39 +242,41 @@ for (type in c('N','t','locshift')){
     beta_save2=matrix(NA,ncol=P,nrow=nmax)
     beta_save3=matrix(NA,ncol=P,nrow=nmax)
     for(idx in 1:nmax){
-      # make data ------------------------------
-      set.seed(idx)
-      n=100
-      
-      x2=rnorm(n,0,1)
-      x3=rnorm(n,0,1)
-      X=cbind(1,x2,x3)
-      stopifnot(P==dim(X)[2])
-      ei=gen_error(type=type,n=n,x2=x2)
-      beta=c(1,1,1)
-      y=X%*%beta+ei
-      
-      # set quantile ------------------------------
-      # p0=0.5
-      # hist(ei,nclass = 100);
-      # Q.tau=quantile(ei,p0)
-      # true_beta=beta+c(Q.tau,0,0);true_beta
-      
-      # estimation starts ------------------------------
-      ###
-      beta.est=GAL_QR(y,X,p0)
-      beta_save1[idx,]=beta.est
-      
-      ###
-      res=rq(y~X[,-1],p0)
-      beta_save2[idx,]=res$coefficients
-      
-      ###
-      out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
-      sum <- summary(out, burnin=50)
-      beta_save3[idx,]=sum[[1]]$betadraw[,1]
+      tryCatch({
+        # make data ------------------------------
+        set.seed(idx)
+        n=100
+        
+        x2=rnorm(n,0,1)
+        x3=rnorm(n,0,1)
+        X=cbind(1,x2,x3)
+        stopifnot(P==dim(X)[2])
+        ei=gen_error(type=type,n=n,x2=x2)
+        beta=c(1,1,1)
+        y=X%*%beta+ei
+        
+        # set quantile ------------------------------
+        # p0=0.5
+        # hist(ei,nclass = 100);
+        # Q.tau=quantile(ei,p0)
+        # true_beta=beta+c(Q.tau,0,0);true_beta
+        
+        # estimation starts ------------------------------
+        ###
+        beta.est=GAL_QR(y,X,p0)
+        beta_save1[idx,]=beta.est
+        
+        ###
+        res=rq(y~X[,-1],p0)
+        beta_save2[idx,]=res$coefficients
+        
+        ###
+        out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
+        sum <- summary(out, burnin=50)
+        beta_save3[idx,]=sum[[1]]$betadraw[,1]        
+      }, error= function(e) {cat("Error", "\n")},
+      warning= function(w) {cat("Warning", "\n")})      
     }
-    toc()
     
     true_beta=beta+gen_truebeta(type = type,p0 = p0)
     
@@ -276,15 +284,20 @@ for (type in c('N','t','locshift')){
     # hist(beta_save2[,1],nclass=30)
     # hist(beta_save3[,1],nclass=30)
     name=paste0('df',p0)
-    df[[name]]
-    df[[name]]=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
-    df[[name]][1,]=c((colMeans(beta_save1)-true_beta)/1, NA, sqrt(colVars(beta_save1)), NA, sqrt((colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1)))
-    df[[name]][2,]=c((colMeans(beta_save2)-true_beta)/1, NA, sqrt(colVars(beta_save2)), NA, sqrt((colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2)))
-    df[[name]][3,]=c((colMeans(beta_save3)-true_beta)/1, NA, sqrt(colVars(beta_save3)), NA, sqrt((colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3)))
-    colnames(df[[name]])=c(paste0('bias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
+    df[[name]]=list()
+    df[[name]][['GAL']]=beta_save1
+    df[[name]][['QR']]=beta_save2
+    df[[name]][['BayesQR']]=beta_save3
+    
+    # df[[name]]=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
+    # df[[name]][1,]=c((colMeans(beta_save1)-true_beta)/1, NA, sqrt(colVars(beta_save1)), NA, sqrt((colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1)))
+    # df[[name]][2,]=c((colMeans(beta_save2)-true_beta)/1, NA, sqrt(colVars(beta_save2)), NA, sqrt((colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2)))
+    # df[[name]][3,]=c((colMeans(beta_save3)-true_beta)/1, NA, sqrt(colVars(beta_save3)), NA, sqrt((colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3)))
+    # colnames(df[[name]])=c(paste0('bias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
   }  
   total_df[[type]]=df
 }
+toc()
 
 total_df
 save.image(file='../debugging/Debugging_w_GibbsBQR_data.RData')

@@ -240,15 +240,22 @@ toc()
 
 true_beta=c(5,2)
 
-hist(beta_save1[,1],nclass=30)
-hist(beta_save2[,1],nclass=30)
-hist(beta_save3[,1],nclass=30)
+# beta_save1.adj=beta_save1[-which(abs(beta_save1[,1])>35),]
 
 df0.5=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
-df0.5[1,]=c((colMeans(beta_save1)-true_beta)/true_beta, NA, sqrt(colVars(beta_save1)), NA, (colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1))
-df0.5[2,]=c((colMeans(beta_save2)-true_beta)/true_beta, NA, sqrt(colVars(beta_save2)), NA, (colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2))
-df0.5[3,]=c((colMeans(beta_save3)-true_beta)/true_beta, NA, sqrt(colVars(beta_save3)), NA, (colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3))
+# df0.5[1,]=c((colMeans(beta_save1.adj)-true_beta)/1, NA, (colVars(beta_save1.adj)), NA, (colMeans(beta_save1.adj)-true_beta)^2+ colVars(beta_save1.adj))
+df0.5[1,]=c((colMeans(beta_save1)-true_beta)/1, NA, (colVars(beta_save1)), NA, (colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1))
+df0.5[2,]=c((colMeans(beta_save2)-true_beta)/1, NA, (colVars(beta_save2)), NA, (colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2))
+df0.5[3,]=c((colMeans(beta_save3)-true_beta)/1, NA, (colVars(beta_save3)), NA, (colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3))
 
-colnames(df0.5)=c(paste0('relbias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
+colnames(df0.5)=c(paste0('bias',1:dim(X)[2]),NA,paste0('var',1:dim(X)[2]),NA,paste0('mse',1:dim(X)[2]))
 # save.image(file='../debugging/Debugging_w_BMQR_data.RData')
 # load(file='../debugging/Debugging_w_BMQR_data.RData')
+df0.5[2,]
+
+par(mfrow=c(2,2))
+hist(beta_save1[,1],nclass=30,main='GAL')
+# hist(beta_save1.adj[,1],nclass=30)
+hist(beta_save2[,1],nclass=30,main='quantreg')
+hist(beta_save3[,1],nclass=30,main='BayesQR')
+par(mfrow=c(1,1))
