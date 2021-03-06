@@ -210,7 +210,7 @@ for(idx in 1:nmax){
   
   xi=seq(0,20,length.out = n)
   ei=rnorm(n,0,sd=(1+0.5*xi))
-  yi=5+2*xi*ei
+  yi=5+2*xi+ei
   # plot(xi,yi)
   
   X=cbind(1,xi)
@@ -227,14 +227,14 @@ for(idx in 1:nmax){
   beta.est=GAL_QR(y,X,p0)
   beta_save1[idx,]=beta.est
   
-  # ###
-  # res=rq(y~X[,-1],p0)
-  # beta_save2[idx,]=res$coefficients
-  # 
-  # ###
-  # out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
-  # sum <- summary(out, burnin=50)
-  # beta_save3[idx,]=sum[[1]]$betadraw[,1]
+  ###
+  res=rq(y~X[,-1],p0)
+  beta_save2[idx,]=res$coefficients
+
+  ###
+  out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
+  sum <- summary(out, burnin=50)
+  beta_save3[idx,]=sum[[1]]$betadraw[,1]
 }
 toc()
 
@@ -244,13 +244,11 @@ hist(beta_save1[,1],nclass=30)
 hist(beta_save2[,1],nclass=30)
 hist(beta_save3[,1],nclass=30)
 
-df=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
-df[1,]=c((colMeans(beta_save1)-true_beta)/true_beta, NA, sqrt(colVars(beta_save1)), NA, (colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1))
-df[2,]=c((colMeans(beta_save2)-true_beta)/true_beta, NA, sqrt(colVars(beta_save2)), NA, (colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2))
-df[3,]=c((colMeans(beta_save3)-true_beta)/true_beta, NA, sqrt(colVars(beta_save3)), NA, (colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3))
+df0.5=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
+df0.5[1,]=c((colMeans(beta_save1)-true_beta)/true_beta, NA, sqrt(colVars(beta_save1)), NA, (colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1))
+df0.5[2,]=c((colMeans(beta_save2)-true_beta)/true_beta, NA, sqrt(colVars(beta_save2)), NA, (colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2))
+df0.5[3,]=c((colMeans(beta_save3)-true_beta)/true_beta, NA, sqrt(colVars(beta_save3)), NA, (colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3))
 
-colnames(df)=c(paste0('relbias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
-df
-
+colnames(df0.5)=c(paste0('relbias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
 # save.image(file='../debugging/Debugging_w_BMQR_data.RData')
-#Gal works poorly in location shit model....
+# load(file='../debugging/Debugging_w_BMQR_data.RData')

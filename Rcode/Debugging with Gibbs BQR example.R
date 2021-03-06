@@ -190,73 +190,102 @@ GAL_QR=function(y,X,p0){
 # plot(xi,y)
 
 # Make Data----------------------------------
-### BQR w mixed discrete nonignorable missing covariate data
-nmax=200
-beta_save1=matrix(NA,ncol=3,nrow=nmax)
-beta_save2=matrix(NA,ncol=3,nrow=nmax)
-beta_save3=matrix(NA,ncol=3,nrow=nmax)
-for(idx in 1:nmax){
-  # make data ------------------------------
-  set.seed(idx)
-  n=500
-  
-  a1=1;a2=c(0.5,0.5,1);
-  x1=rbinom(n,1,exp(a1)/(1+exp(a1)))
-  x2=rnorm(n,a2[1]+a2[2]*x1,a2[3])
-  X=cbind(1,x1,x2)
-  
-  ei_idx=rbinom(n,1,0.9)
-  ei=rep(NA,n)
-  ei[ei_idx==1]=rnorm(sum(ei_idx==1),0,1)
-  ei[ei_idx==0]=rnorm(sum(ei_idx==0),0,5)
-  
-  beta=c(0.5,0.5,0.5)
-  
-  y = X%*%beta + ei
-  
-  # set quantile ------------------------------
-  
-  p0=0.5
-  # hist(ei,nclass = 100);
-  # Q.tau=quantile(ei,p0)
-  # true_beta=beta+c(Q.tau,0,0);true_beta
-  
-  # estimation starts ------------------------------
-  ###
-  beta.est=GAL_QR(y,X,p0)
-  beta_save1[idx,]=beta.est
-  
-  ###
-  res=rq(y~X[,-1],p0)
-  beta_save2[idx,]=res$coefficients
-  
-  ###
-  out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
-  sum <- summary(out, burnin=50)
-  beta_save3[idx,]=sum[[1]]$betadraw[,1]
+# ####
+# data("ImmunogG")
+# head(ImmunogG)
+# 
+# y=ImmunogG$IgG
+# X=cbind(1,ImmunogG$Age,ImmunogG$Age^2)
+
+### BMQR for linear models data-----------------------------------
+gen_error=function(type,n,x2){
+  if(type=='N'){
+    ei=rnorm(n,0,1)
+  }
+  if(type=='t'){
+    ei=rt(n = n,df = 3)
+  }
+  if(type=='locshift'){
+    ei=(1+x2)*rnorm(n,0,1)
+  }
+  return (ei)
 }
 
-n=1e6
-ei_idx=rbinom(n,1,0.9)
-ei=rep(NA,n)
-ei[ei_idx==1]=rnorm(sum(ei_idx==1),0,1)
-ei[ei_idx==0]=rnorm(sum(ei_idx==0),0,5)
-p0=0.5
-Q.tau=quantile(ei,p0)
-true_beta=beta+c(Q.tau,0,0);true_beta
+gen_truebeta=function(type,p0){
+  if(type=='N'){
+    to_add=c(qnorm(p0),0,0)
+  }
+  if(type=='t'){
+    to_add=c(qt(p = p0,df = 3),0,0)
+  }
+  if(type=='locshift'){
+    to_add=c(qnorm(p0),qnorm(p0)-1,0)
+  }
+  return (to_add)  
+}
 
-hist(beta_save1[,1],nclass=30)
-ts.plot(beta_save1[,1])
-# beta_save1=beta_save1[-which(beta_save1[,1]>200),]
+total_df=list()
+P=3
+# type='N'
+tic()
+for (type in c('N','t','locshift')){
+  df=list()
+  for(p0 in c(0.1,0.5,0.9)){
+    nmax=1000
+    beta_save1=matrix(NA,ncol=P,nrow=nmax)
+    beta_save2=matrix(NA,ncol=P,nrow=nmax)
+    beta_save3=matrix(NA,ncol=P,nrow=nmax)
+    for(idx in 1:nmax){
+      # make data ------------------------------
+      set.seed(idx)
+      n=100
+      
+      x2=rnorm(n,0,1)
+      x3=rnorm(n,0,1)
+      X=cbind(1,x2,x3)
+      stopifnot(P==dim(X)[2])
+      ei=gen_error(type=type,n=n,x2=x2)
+      beta=c(1,1,1)
+      y=X%*%beta+ei
+      
+      # set quantile ------------------------------
+      # p0=0.5
+      # hist(ei,nclass = 100);
+      # Q.tau=quantile(ei,p0)
+      # true_beta=beta+c(Q.tau,0,0);true_beta
+      
+      # estimation starts ------------------------------
+      ###
+      beta.est=GAL_QR(y,X,p0)
+      beta_save1[idx,]=beta.est
+      
+      ###
+      res=rq(y~X[,-1],p0)
+      beta_save2[idx,]=res$coefficients
+      
+      ###
+      out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
+      sum <- summary(out, burnin=50)
+      beta_save3[idx,]=sum[[1]]$betadraw[,1]
+    }
+    toc()
+    
+    true_beta=beta+gen_truebeta(type = type,p0 = p0)
+    
+    # hist(beta_save1[,1],nclass=30)
+    # hist(beta_save2[,1],nclass=30)
+    # hist(beta_save3[,1],nclass=30)
+    name=paste0('df',p0)
+    df[[name]]
+    df[[name]]=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
+    df[[name]][1,]=c((colMeans(beta_save1)-true_beta)/1, NA, sqrt(colVars(beta_save1)), NA, sqrt((colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1)))
+    df[[name]][2,]=c((colMeans(beta_save2)-true_beta)/1, NA, sqrt(colVars(beta_save2)), NA, sqrt((colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2)))
+    df[[name]][3,]=c((colMeans(beta_save3)-true_beta)/1, NA, sqrt(colVars(beta_save3)), NA, sqrt((colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3)))
+    colnames(df[[name]])=c(paste0('bias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
+  }  
+  total_df[[type]]=df
+}
 
-
-df0.5=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
-df0.5[1,]=c((colMeans(beta_save1)-true_beta)/true_beta, NA, sqrt(colVars(beta_save1)), NA, (colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1))
-df0.5[2,]=c((colMeans(beta_save2)-true_beta)/true_beta, NA, sqrt(colVars(beta_save2)), NA, (colMeans(beta_save2)-true_beta)^2+ colVars(beta_save2))
-df0.5[3,]=c((colMeans(beta_save3)-true_beta)/true_beta, NA, sqrt(colVars(beta_save3)), NA, (colMeans(beta_save3)-true_beta)^2+ colVars(beta_save3))
-
-colnames(df0.5)=c(paste0('relbias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
-df0.5
-
-# save.image(file='../debugging/Debugging_w_BQRmixed_nonignorable_data.RData')
-load(file='../debugging/Debugging_w_BQRmixed_nonignorable_data.RData')
+total_df
+save.image(file='../debugging/Debugging_w_GibbsBQR_data.RData')
+# load(file='../debugging/Debugging_w_GibbsBQR_data.RData')
