@@ -38,7 +38,7 @@ nmax=500
 for(sim_idx in 1:nmax){
   # Make data--------------------------------------------------------------------------------
   set.seed(sim_idx)
-  p0=0.25
+  p0=0.5
   n=1000
   P=2
   #Define A,B
@@ -197,7 +197,11 @@ for(sim_idx in 1:nmax){
     #sample_vi (or zi)-----------------------------------------------------------------
     a_t=(y - (X%*%t(beta_t)))**2/(B*sigma_t)
     b_t=2/sigma_t+A**2/(B*sigma_t)
-    v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
+    # v_t=sapply(X = a_t, FUN = function(x) rgig(n = 1,lambda = 0.5, chi = x, psi = b_t))
+    for(ii in 1:n){
+      v_t[ii]=rgig(n = 1,lambda = 0.5,chi =a_t[ii],psi = b_t)
+    }
+    # v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t) ### error version
     s_t=v_t/sigma_t
     
     #sample sigma-----------------------------------------------------------------
@@ -271,49 +275,82 @@ for(sim_idx in 1:nmax){
     }
   }
   toc()
-  save.image(file=sprintf('./debugging/ALD_sim_%s.RData',sim_idx))
+  save.image(file=sprintf('../debugging/ALD_sim_%s.RData',sim_idx))
 }
 
 plot(X[,2],colMeans(X_trace))
 abline(0,1)
 
-# tic()
-# mean_bias=matrix(NA,ncol=6,nrow=nmax)
-# median_bias=matrix(NA,ncol=6,nrow=nmax)
-# for(sim_idx in 1:nmax){
-#   # load(file=sprintf('../debugging/ALD_sim_%s.RData',sim_idx))
-#   aa=colMedians(beta_trace)
-#   bb=colMeans(beta_trace)
-#   median_bias[sim_idx,1:2]=(aa-beta)
-#   mean_bias[sim_idx,1:2]=(bb-beta)
-#   
-#   aa=colMedians(alpha_trace)
-#   bb=colMeans(alpha_trace)
-#   median_bias[sim_idx,3:4]=(aa-alpha)
-#   mean_bias[sim_idx,3:4]=(bb-alpha)
-#   
-#   median_bias[sim_idx,5]=median(sigma2_11_trace)-sigma2_11
-#   mean_bias[sim_idx,5]=mean(sigma2_11_trace)-sigma2_11
-#   
-#   median_bias[sim_idx,6]=median(sigma2_22_trace)-sigma2_22
-#   mean_bias[sim_idx,6]=mean(sigma2_22_trace)-sigma2_22
-# }
-# toc()
-# 
-# beta_hist=function(inp_data){
-#   label_list=c('beta0','beta1','alpha0','alpha1','sigma2_11','sigma2_22')
-#   par(mfrow=c(3,2))
-#   for(ii in 1:dim(inp_data)[2]){
-#     tmp_data=inp_data[,ii]
-#     tmp_data=tmp_data[!is.na(tmp_data)]
-#     quant=quantile(tmp_data,c(0.025,0.975))
-#     quant_data=tmp_data[(tmp_data>quant[1])&(tmp_data<quant[2])]
-#     p.v=round(t.test(quant_data, mu=0)$p.value,10)
-#     hist(quant_data,nclass=100,main=sprintf('%s bias\n t.test : %s\n mean : %s',label_list[ii],p.v,round(mean(quant_data),2)),xlab=label_list[ii])
-#     abline(v=0,col=2,lwd=3)  
-#   }
-#   par(mfrow=c(1,1))
-# }
-# 
-# beta_hist(median_bias)
-# beta_hist(mean_bias)
+tic()
+mean_bias=matrix(NA,ncol=6,nrow=nmax)
+median_bias=matrix(NA,ncol=6,nrow=nmax)
+for(sim_idx in 1:nmax){
+  load(file=sprintf('../debugging/ALD_sim_%s.RData',sim_idx))
+  aa=colMedians(beta_trace)
+  bb=colMeans(beta_trace)
+  median_bias[sim_idx,1:2]=(aa-beta)
+  mean_bias[sim_idx,1:2]=(bb-beta)
+
+  aa=colMedians(alpha_trace)
+  bb=colMeans(alpha_trace)
+  median_bias[sim_idx,3:4]=(aa-alpha)
+  mean_bias[sim_idx,3:4]=(bb-alpha)
+
+  median_bias[sim_idx,5]=median(sigma2_11_trace)-sigma2_11
+  mean_bias[sim_idx,5]=mean(sigma2_11_trace)-sigma2_11
+
+  median_bias[sim_idx,6]=median(sigma2_22_trace)-sigma2_22
+  mean_bias[sim_idx,6]=mean(sigma2_22_trace)-sigma2_22
+}
+toc()
+
+beta_hist=function(inp_data){
+  label_list=c('beta0','beta1','alpha0','alpha1','sigma2_11','sigma2_22')
+  par(mfrow=c(3,2))
+  for(ii in 1:dim(inp_data)[2]){
+    tmp_data=inp_data[,ii]
+    tmp_data=tmp_data[!is.na(tmp_data)]
+    quant=quantile(tmp_data,c(0.025,0.975))
+    quant_data=tmp_data[(tmp_data>quant[1])&(tmp_data<quant[2])]
+    p.v=round(t.test(quant_data, mu=0)$p.value,10)
+    hist(quant_data,nclass=100,main=sprintf('%s bias\n t.test : %s\n mean : %s',label_list[ii],p.v,round(mean(quant_data),2)),xlab=label_list[ii])
+    abline(v=0,col=2,lwd=3)
+  }
+  par(mfrow=c(1,1))
+}
+
+beta_hist(median_bias)
+beta_hist(mean_bias)
+
+
+
+
+####################################
+nmax=1e4
+n=200
+tmp_vec=rep(2,n)
+
+tic()
+test_mat=matrix(NA,ncol=n,nrow=nmax)
+for(ii in 1:nmax){
+  test_mat[ii,]=sapply(X = tmp_vec,FUN = function(x) rgig(n = 1,lambda = x,chi = 1,psi = 2))
+}
+toc()
+
+tic()
+test_mat=matrix(NA,ncol=n,nrow=nmax)
+for(ii in 1:nmax){
+  for(jj in 1:n){
+    test_mat[ii,jj]=rgig(n = 1,lambda = tmp_vec[jj],chi = 1,psi = 2)
+  }
+}
+toc()
+
+colMeans(test_mat)
+colVars(test_mat)
+dim(test_mat)
+hist(test_mat[,1],nclass=100,xlim = c(0,3))
+hist(test_mat[,2],nclass=100,xlim = c(0,3))
+
+sapply()
+besselI(x, nu, expon.scaled = FALSE)
