@@ -32,12 +32,12 @@ my_hist=function(inp_data,true_value,inp_text){
   mtext(sprintf('Median : %s',round(median(inp_data),2)),side=3)
   abline(v=true_value,col=2,lwd=3)
 }
-nmax=500
+nmax=200
 for(sim_idx in 1:nmax){
   # Make data--------------------------------------------------------------------------------
   set.seed(sim_idx)
   p0=0.25
-  n=1000
+  n=200
   P=2
   
   P=P-1
@@ -210,7 +210,10 @@ for(sim_idx in 1:nmax){
     #sample_vi (or zi)-----------------------------------------------------------------
     a_t=(y - (X%*%t(beta_t)+sigma_t*C*abs(gamma_t)*k_t))**2/(B*sigma_t)
     b_t=2/sigma_t+A**2/(B*sigma_t)
-    v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
+    for(ii in 1:n){
+      v_t[ii]=rgig(n = 1,lambda = 0.5,chi =a_t[ii],psi = b_t)
+    }
+    # v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
     s_t=v_t/sigma_t
     
     #sample ki-----------------------------------------------------------------
@@ -339,14 +342,14 @@ for(sim_idx in 1:nmax){
     }
   }
   toc()
-  # save.image(file=sprintf('./debugging/QR_alpharandom_%s.RData',sim_idx))
+  # save.image(file=sprintf('./debugging/QR_alpharandom_ii_%s.RData',sim_idx))
 }
 
 tic()
 mean_bias=matrix(NA,ncol=6,nrow=nmax)
 median_bias=matrix(NA,ncol=6,nrow=nmax)
 for(sim_idx in 1:nmax){
-  load(file=sprintf('../debugging/QR_alpharandom_%s.RData',sim_idx))
+  load(file=sprintf('../debugging/QR_alpharandom_ii_%s.RData',sim_idx))
   # load(file=sprintf('../debugging/QR_betarandom_%s.RData',sim_idx))
   aa=colMedians(beta_trace)
   bb=colMeans(beta_trace)
