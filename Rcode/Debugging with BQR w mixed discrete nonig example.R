@@ -109,7 +109,10 @@ GAL_QR=function(y,X,p0){
     #sample_vi (or zi)-----------------------------------------------------------------
     a_t=(y - (X%*%t(beta_t)+sigma_t*C*abs(gamma_t)*s_t))**2/(B*sigma_t)
     b_t=2/sigma_t+A**2/(B*sigma_t)
-    v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
+    for(ii in 1:n){
+      v_t[ii]=rgig(n = 1,lambda = 0.5,chi =a_t[ii],psi = b_t)
+    }
+    # v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
     z_t=v_t/sigma_t
     
     #sample si-----------------------------------------------------------------

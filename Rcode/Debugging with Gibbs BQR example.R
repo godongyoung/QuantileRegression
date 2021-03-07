@@ -114,7 +114,10 @@ GAL_QR=function(y,X,p0){
     #sample_vi (or zi)-----------------------------------------------------------------
     a_t=(y - (X%*%t(beta_t)+sigma_t*C*abs(gamma_t)*s_t))**2/(B*sigma_t)
     b_t=2/sigma_t+A**2/(B*sigma_t)
-    v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
+    for( ii in 1:n){
+      v_t[ii]=rgig(n = 1,lambda = 0.5,chi =a_t[ii],psi = b_t)
+    }
+    # v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
     z_t=v_t/sigma_t
     
     #sample si-----------------------------------------------------------------
@@ -230,7 +233,7 @@ gen_truebeta=function(type,p0){
 }
 
 
-total_df=list()
+# total_df=list()
 P=3
 # type='N'
 tic()
@@ -267,13 +270,13 @@ for (type in c('N','t','locshift')){
         beta_save1[idx,]=beta.est
         
         ###
-        res=rq(y~X[,-1],p0)
-        beta_save2[idx,]=res$coefficients
-        
-        ###
-        out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
-        sum <- summary(out, burnin=50)
-        beta_save3[idx,]=sum[[1]]$betadraw[,1]        
+        # res=rq(y~X[,-1],p0)
+        # beta_save2[idx,]=res$coefficients
+        # 
+        # ###
+        # out <- bayesQR(y~X[,-1], quantile=c(p0), ndraw=500)
+        # sum <- summary(out, burnin=50)
+        # beta_save3[idx,]=sum[[1]]$betadraw[,1]        
       }, error= function(e) {cat("Error", "\n")},
       warning= function(w) {cat("Warning", "\n")})      
     }
@@ -286,8 +289,8 @@ for (type in c('N','t','locshift')){
     name=paste0('df',p0)
     df[[name]]=list()
     df[[name]][['GAL']]=beta_save1
-    df[[name]][['QR']]=beta_save2
-    df[[name]][['BayesQR']]=beta_save3
+    # df[[name]][['QR']]=beta_save2
+    # df[[name]][['BayesQR']]=beta_save3
     
     # df[[name]]=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
     # df[[name]][1,]=c((colMeans(beta_save1)-true_beta)/1, NA, sqrt(colVars(beta_save1)), NA, sqrt((colMeans(beta_save1)-true_beta)^2+ colVars(beta_save1)))
@@ -300,5 +303,26 @@ for (type in c('N','t','locshift')){
 toc()
 
 total_df
-save.image(file='../debugging/Debugging_w_GibbsBQR_data.RData')
+# save.image(file='../debugging/Debugging_w_GibbsBQR_data.RData')
 # load(file='../debugging/Debugging_w_GibbsBQR_data.RData')
+
+for (type in names(total_df)){
+  type_df=total_df[[type]]
+  for (qversion in names(type_df)){
+    p0=as.numeric(substr(qversion,start = (nchar(qversion)-2),stop = nchar(qversion)))
+    true_beta=beta+gen_truebeta(type = type,p0 = p0)
+    
+    q_type_df=type_df[[qversion]]
+    df=data.frame(matrix(NA,nrow=3,ncol=((dim(X)[2]*3+2))),row.names = c('GAL','QR','BayesQR'))
+    cnt=1
+    for (mversion in names(q_type_df)){
+      beta_svae.model = q_type_df[[mversion]]
+      df[cnt,]=c((colMeans(beta_svae.model,na.rm = T)-true_beta)/1, NA, sqrt(colVars(beta_svae.model,na.rm = T)), NA, sqrt((colMeans(beta_svae.model,na.rm = T)-true_beta)^2+ colVars(beta_svae.model,na.rm = T)))
+      cnt=cnt+1
+    }
+    colnames(df)=c(paste0('bias',1:dim(X)[2]),NA,paste0('sd',1:dim(X)[2]),NA,paste0('rmse',1:dim(X)[2]))
+    print(c(type,p0))
+    print(df)
+  }
+}
+
