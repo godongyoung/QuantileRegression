@@ -41,6 +41,7 @@ my_hist=function(inp_data,true_value,inp_text){
   abline(v=true_value,col=2,lwd=3)
 }
 
+
 # Simulation start --------------------------------------------------------------------------------
 for(sim_idx in start.idx:end.idx){
   
@@ -49,13 +50,12 @@ for(sim_idx in start.idx:end.idx){
   P=2
   
   # Make data--------------------------------------------------------------------------------
-  
+
   Mu_x=10
   sigma2=1
   sigma2_xx=1
   sigma2_11=1
   sigma2_22=1
-  
   
   x1i=rnorm(n = n,Mu_x,sqrt(sigma2_xx))
   X=cbind(1,x1i)
@@ -74,27 +74,27 @@ for(sim_idx in start.idx:end.idx){
   {if (type=='N'){
     ei=rnorm(n,0,1)
   }
-    if (type=='t'){
-      ei=rt(n,df = 3)
-    }
-    if (type=='locshit'){
-      ei=rnorm(n,0,1)*(1+x1i)
-    }  
-    if (type=='MixN'){
-      if(p0==0.1){to_subtract=1.43}
-      if(p0==0.25){to_subtract=0.72}
-      if(p0==0.5){to_subtract=-0.02}
-      if(p0==0.75){to_subtract=-0.77}
-      if(p0==0.9){to_subtract=-1.555}
-      
-      g_indx=rbinom(n = n,size = 1,prob = c(0.1))
-      n1=sum(g_indx==0)
-      n2=sum(g_indx==1)
-      samp1=rnorm(n=n1,mean=to_subtract,sd=1)
-      samp2=rnorm(n=n2,mean=(to_subtract+1),sd=5)
-      samp=c(samp1,samp2)
-      ei=samp
-    }}
+  if (type=='t'){
+    ei=rt(n,df = 3)
+  }
+  if (type=='locshit'){
+    ei=rnorm(n,0,1)*(1+x1i)
+  }  
+  if (type=='MixN'){
+    if(p0==0.1){to_subtract=1.43}
+    if(p0==0.25){to_subtract=0.72}
+    if(p0==0.5){to_subtract=-0.02}
+    if(p0==0.75){to_subtract=-0.77}
+    if(p0==0.9){to_subtract=-1.555}
+    
+    g_indx=rbinom(n = n,size = 1,prob = c(0.1))
+    n1=sum(g_indx==0)
+    n2=sum(g_indx==1)
+    samp1=rnorm(n=n1,mean=to_subtract,sd=1)
+    samp2=rnorm(n=n2,mean=(to_subtract+1),sd=5)
+    samp=c(samp1,samp2)
+    ei=samp
+  }}
   
   y=(X%*%beta)+ei
   
@@ -102,17 +102,17 @@ for(sim_idx in start.idx:end.idx){
   {if (type=='N'){
     beta.true=beta+c(qnorm(p0,0,1),0)
   }
-    if (type=='t'){
-      beta.true=beta+c(qt(p0,df = 3),0)
-    }
-    if (type=='locshit'){
-      beta.true=c(beta[1]+qnorm(p0,0,1),beta[2]*qnorm(p0,0,1))
-    }  
-    if (type=='MixN'){
-      beta.true=beta
-    }}
+  if (type=='t'){
+    beta.true=beta+c(qt(p0,df = 3),0)
+  }
+  if (type=='locshit'){
+    beta.true=c(beta[1]+qnorm(p0,0,1),beta[2]*qnorm(p0,0,1))
+  }  
+  if (type=='MixN'){
+    beta.true=beta
+  }}
   
-  # set default--------------------------------------------------------------------------------
+  # set default----------------------------------------------------------------------
   niter    <- 30000
   nburn    <- 5000
   nthin    <- 5
@@ -120,10 +120,10 @@ for(sim_idx in start.idx:end.idx){
   nmcmc=(niter-nburn)/nthin
   
   
-  # Prior Setting ----------------------------------------------------------------------  
-  #Define A,B
-  stopifnot(abs(p0)<1)
-  A=(1-2*p0)/(p0*(1-p0));B=2/(p0*(1-p0));
+  # Prior Setting ----------------------------------------------------------------------
+  #unif for gamma
+  U=nleqslv(0,tmp_func1)$x
+  L=-nleqslv(0,tmp_func2)$x
   
   #N for beta
   pr_mean_beta=rep(0,P)
@@ -151,7 +151,9 @@ for(sim_idx in start.idx:end.idx){
   # Make Trace ----------------------------------------------------------------------
   beta_trace=matrix(NA,nrow=nmcmc,ncol=P)
   sigma_trace=rep(NA,nmcmc)
+  gamma_trace=rep(NA,nmcmc)
   s_trace=matrix(NA,nrow=nmcmc,ncol=n)
+  k_trace=matrix(NA,nrow=nmcmc,ncol=n)
   sigma2_xx_trace=rep(NA,nmcmc)
   sigma2_11_trace=rep(NA,nmcmc)
   sigma2_22_trace=rep(NA,nmcmc)
@@ -163,6 +165,7 @@ for(sim_idx in start.idx:end.idx){
   # Iteration--------------------------------------------------------------------------------
   
   #init value
+  gamma_t=runif(1,L,U)
   beta_t=rmvnorm(1,c(0,0),diag(2))
   alpha_t=rnorm(2,0,1)
   sigma_t=runif(1)
@@ -171,6 +174,7 @@ for(sim_idx in start.idx:end.idx){
   sigma2_22_t=runif(1)
   mux_t=rnorm(1,pr_mean_mux,sqrt(pr_var_mux))
   s_t=rexp(n)
+  k_t=rtruncnorm(n = n,a = 0,b = Inf,mean = 0,sd = 1)
   
   accept_n=0
   
@@ -178,54 +182,106 @@ for(sim_idx in start.idx:end.idx){
   X_1t=cbind(1,w1)%*%alpha_t #Let's start with 21, obs data
   X_t=cbind(1,X_1t)
   
-  
-  
-
-  
-  
+  jump_gamma_sd=0.5
   
   tic()
   for(iter in 1:niter){
     # for(iter in 1:10){
     if(iter%%nprint==1){cat(iter,'th iter is going\n')}
     
+    #Define A,B,C with current gamma_t
+    g_gamma=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)
+    p.gamma_t=ifelse(gamma_t>0,p0/g_gamma,1-(1-p0)/g_gamma)
+    stopifnot(abs(p.gamma_t)<1)
+    A=(1-2*p.gamma_t)/(p.gamma_t*(1-p.gamma_t));B=2/(p.gamma_t*(1-p.gamma_t));C=1/(ifelse(gamma_t>0,1,0)-p.gamma_t)
+    
     v_t=s_t*sigma_t
-    # alpha_t=abs(gamma_t)/(ifelse(gamma_t>0,1,0)-p)
     
     #Sample beta-----------------------------------------------------------------
     post_sd_beta = solve( solve(pr_sd_beta) + t(X/sqrt(v_t))%*%(X/sqrt(v_t))/(B*sigma_t) )
-    post_mean_beta = post_sd_beta %*% (solve(pr_sd_beta)%*%pr_mean_beta + colSums(X*((y-(A*v_t))/(B*sigma_t*v_t))[1:n]))
+    post_mean_beta = post_sd_beta %*% (solve(pr_sd_beta)%*%pr_mean_beta + colSums(X*((y-(sigma_t*C*abs(gamma_t)*k_t+A*v_t))/(B*sigma_t*v_t))[1:n]))
     beta_t=rmvnorm(n = 1,mu = post_mean_beta,sigma = post_sd_beta)
+    # cat(beta_t,'\n')
     
     #sample_vi (or zi)-----------------------------------------------------------------
-    a_t=(y - (X%*%t(beta_t)))**2/(B*sigma_t)
+    a_t=(y - (X%*%t(beta_t)+sigma_t*C*abs(gamma_t)*k_t))**2/(B*sigma_t)
     b_t=2/sigma_t+A**2/(B*sigma_t)
-    # v_t=sapply(X = a_t, FUN = function(x) rgig(n = 1,lambda = 0.5, chi = x, psi = b_t))
     for(ii in 1:n){
       v_t[ii]=rgig(n = 1,lambda = 0.5,chi =a_t[ii],psi = b_t)
     }
-    # v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t) ### error version
+    # v_t=rgig(n = 1,lambda = 0.5,chi =a_t,psi = b_t)
     s_t=v_t/sigma_t
     
+    #sample ki-----------------------------------------------------------------
+    post_var_ki=1/((C*gamma_t)**2*sigma_t/(B*v_t)+1)
+    post_mean_ki=post_var_ki*C*abs(gamma_t)*(y - (X%*%t(beta_t)+A*v_t))/(B*v_t)
+    k_t=rtruncnorm(n = n,a = 0,b = Inf,mean = post_mean_ki,sd = sqrt(post_var_ki)) #rtruncnorm can sample multiple case, when input param is vector
+    
     #sample sigma-----------------------------------------------------------------
-    nu=(prior_a+1.5*n)
-    c=0.5 * (2*prior_b + 2*sum(v_t) + sum((y - (X%*%t(beta_t)+A*v_t))**2/(B*v_t)))
-    sigma_t=rinvgamma(n = 1,shape = nu ,scale = c)
+    nu=-(prior_a+1.5*n)
+    c=2*prior_b + 2*sum(v_t) + sum((y - (X%*%t(beta_t)+A*v_t))**2/(B*v_t))
+    d=sum((C*gamma_t*k_t)**2/(B*v_t))
+    sigma_t=rgig(n = 1,lambda = nu,chi = c,psi = d)
     s_t=v_t/sigma_t #Is this right??? or should I just leave s_t as previous(i.e.unupdated) one?
     
-
+    #sample_gamma using MH wtn Gibbs-----------------------------------------------------------------
+    u=rnorm(1,0,1) #sd2:0.01467065 #sd1:0.03030813 #sd0.5:0.05372212
+    # because it is not a randomwalk sampler, sd should be at least 1 to fully explore the uniform interval.
+    gamma_star=1/(1+exp(-u))*(U-L)-abs(L) #normal proposal on logit scale #Is it right....?
+    # hist(gamma_star,nclass=100)
+    # plot(1/(1+exp(-seq(-10,10)))*(U-L)-abs(L))
+    # max(1/(1+exp(-seq(-10,10)))*(U-L)-abs(L))
+    
+    #Define A.star,B.star,C.star with gamma_star
+    g_gamma.star=2*pnorm(-abs(gamma_star))*exp(gamma_star**2/2)
+    p.star=ifelse(gamma_star>0,p0/g_gamma.star,1-(1-p0)/g_gamma.star)
+    stopifnot(abs(p.star)<1)
+    A.star=(1-2*p.star)/(p.star*(1-p.star));    B.star=2/(p.star*(1-p.star));   C.star=1/(ifelse(gamma_star>0,1,0)-p.star)
+    
+    numer=sum(dnorm(x = y,mean = X%*%t(beta_t)+sigma_t*C.star*abs(gamma_star)*k_t+sigma_t*A.star*s_t,sd = sigma_t*sqrt(B.star*s_t),log = T))
+    denom=sum(dnorm(x = y,mean = X%*%t(beta_t)+sigma_t*C*abs(gamma_t)*k_t+sigma_t*A*s_t,sd = sigma_t*sqrt(B*s_t),log = T))
+    
+    ###########################
+    # p.tmp=ifelse(gamma_t<0,1,0) + (p0-ifelse(gamma_t<0,1,0))/g_gamma
+    # p.plus=p.tmp-ifelse(gamma_t>0,1,0)
+    # p.minus=p-ifelse(gamma_t<0,1,0)
+    # y.star=(y-X%*%t(beta_t))/sigma_t
+    # 
+    # (2*p.tmp*(1-p.tmp)/sigma_t*(pnorm(-p.plus*y.star[1]/abs(gamma_t)+p.minus/p.plus *abs(gamma_t))-pnorm(p.minus/p.plus *abs(gamma_t)))*exp(-p.minus*y.star[1]+gamma_t**2/2*(p.minus/p.plus)**2)*ifelse(y.star[1]/gamma_t>0,1,0)
+    #     + pnorm(-abs(gamma_t)+p.plus*y.star[1]/abs(gamma_t)*ifelse(y.star[1]/gamma_t>0,1,0))*exp(-p.plus*y.star[1]+gamma_t**2/2))
+    ###########################
+    u2=log(runif(1))
+    ratio=numer-denom
+    u2<ratio
+    if(u2<ratio){
+      gamma_t=gamma_star
+      A=A.star;B=B.star;C=C.star
+      accept_n=accept_n+1
+    } 
+    else{
+      gamma_t=gamma_t
+    }
+    # gamma_t=ifelse(u2<ratio,gamma_star,gamma_t) #This code won't able to count accept counts
+    stopifnot((L<gamma_t)&(gamma_t<U))
+    
     #sample X_1t-----------------------------------------------------------------
     V_X= 1 / (beta_t[2]^2/(sigma_t*B*v_t)+alpha_t[2]^2/sigma2_11_t+1/sigma2_22_t+1/sigma2_xx_t)
-    M_X=((beta_t[2]*(y-(beta_t[1]+A*v_t)))/(sigma_t*B*v_t)+
+    #mean((1/V_X-(sigma2_11_t*sigma2_22_t*sigma2_xx_t*beta_t[2]^2+sigma_t*B*v_t*sigma2_22_t*sigma2_xx_t*alpha_t[2]^2+sigma_t*B*v_t*sigma2_11_t*sigma2_xx_t+sigma_t*B*v_t*sigma2_11_t*sigma2_22_t)/(sigma_t*B*v_t*sigma2_11_t*sigma2_22_t*sigma2_xx_t))<1e-10) # just for debugging
+    M_X=((beta_t[2]*(y-(beta_t[1]+sigma_t*C*abs(gamma_t)*k_t+A*v_t)))/(sigma_t*B*v_t)+
            alpha_t[2]*(w1-alpha_t[1])/sigma2_11_t+
            w2/sigma2_22_t+
            mux_t/sigma2_xx_t)/
       (beta_t[2]^2/(sigma_t*B*v_t)+alpha_t[2]^2/sigma2_11_t+1/sigma2_22_t+1/sigma2_xx_t)
+    # mean((M_X-(sigma2_11_t*sigma2_22_t*sigma2_xx_t*beta_t[2]*(y-(beta_t[1]+sigma_t*C*abs(gamma_t)*k_t+A*v_t))+
+    #     sigma_t*B*v_t*sigma2_22_t*sigma2_xx_t*alpha_t[2]*(w1-alpha_t[1])+
+    #     sigma_t*B*v_t*sigma2_11_t*sigma2_xx_t*w2+
+    #     sigma_t*B*v_t*sigma2_11_t*sigma2_22_t*mux_t)/(sigma2_11_t*sigma2_22_t*sigma2_xx_t*beta_t[2]^2+sigma_t*B*v_t*sigma2_22_t*sigma2_xx_t*alpha_t[2]^2+sigma_t*B*v_t*sigma2_11_t*sigma2_xx_t+sigma_t*B*v_t*sigma2_11_t*sigma2_22_t))<1e-10) # just for debugging
     X_1t=rnorm(n = n,mean = M_X,sd = sqrt(V_X))
     X_t=cbind(1,X_1t)
     
     #sample sigma2_xx-----------------------------------------------------------------
     post_ax=0.5*n+prior_ax
+    # post_ax=1.5*n+prior_ax
     post_bx=prior_bx+1/2*sum((X_1t-mux_t)^2)
     sigma2_xx_t=rinvgamma(1,post_ax,post_bx)
     stopifnot(sigma2_xx_t>0)
@@ -233,6 +289,7 @@ for(sim_idx in start.idx:end.idx){
     
     #sample sigma2_11-----------------------------------------------------------------
     post_a1=0.5*n+prior_a1
+    # post_a1=1.5*n+prior_a1
     post_b1=prior_b1+1/2*sum((w1-(alpha_t[1]+alpha_t[2]*X_1t))^2)
     sigma2_11_t=rinvgamma(1,post_a1,post_b1)
     stopifnot(sigma2_11_t>0)
@@ -240,6 +297,7 @@ for(sim_idx in start.idx:end.idx){
     
     #sample sigma2_22-----------------------------------------------------------------
     post_a2=0.5*n+prior_a2
+    # post_a2=1.5*n+prior_a2
     post_b2=prior_b2+1/2*sum((w2-X_1t)^2)
     sigma2_22_t=rinvgamma(1,post_a2,post_b2)
     stopifnot(sigma2_22_t>0)
@@ -260,13 +318,12 @@ for(sim_idx in start.idx:end.idx){
     #cat('alpha_t',alpha_t,'\n')
     #cat('------------------------------------------------------------------\n')
     
-    
-    
     # Save samples in each thin-----------------------------------------------------------------
     if((iter > nburn) & (iter %% nthin== 0) ){
       thinned_idx=(iter-nburn)/nthin
       beta_trace[thinned_idx,]=beta_t
       sigma_trace[thinned_idx]=sigma_t
+      gamma_trace[thinned_idx]=gamma_t
       sigma2_xx_trace[thinned_idx]=sigma2_xx_t
       sigma2_11_trace[thinned_idx]=sigma2_11_t
       sigma2_22_trace[thinned_idx]=sigma2_22_t
@@ -274,31 +331,34 @@ for(sim_idx in start.idx:end.idx){
       alpha_trace[thinned_idx,]=alpha_t
       X_trace[thinned_idx,]=X_1t
       s_trace[thinned_idx,]=s_t
+      k_trace[thinned_idx,]=k_t
       
     }
   }
   toc()
-  save.image(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+  save.image(file=sprintf('../debugging/GAL_%s_%s_%s.RData',type,p0,sim_idx))
 }
 
+
+# 
 # tic()
 # mean_bias=matrix(NA,ncol=6,nrow=nmax)
 # median_bias=matrix(NA,ncol=6,nrow=nmax)
 # for(sim_idx in 1:nmax){
-#   load(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+#   load(file=sprintf('../debugging/GAL_%s_%s_%s.RData',type,p0,sim_idx))
 #   aa=colMedians(beta_trace)
 #   bb=colMeans(beta_trace)
-#   median_bias[sim_idx,1:2]=(aa-beta)
-#   mean_bias[sim_idx,1:2]=(bb-beta)
-# 
+#   median_bias[sim_idx,1:2]=(aa-beta.true)
+#   mean_bias[sim_idx,1:2]=(bb-beta.true)
+#   
 #   aa=colMedians(alpha_trace)
 #   bb=colMeans(alpha_trace)
 #   median_bias[sim_idx,3:4]=(aa-alpha)
 #   mean_bias[sim_idx,3:4]=(bb-alpha)
-# 
+#   
 #   median_bias[sim_idx,5]=median(sigma2_11_trace)-sigma2_11
 #   mean_bias[sim_idx,5]=mean(sigma2_11_trace)-sigma2_11
-# 
+#   
 #   median_bias[sim_idx,6]=median(sigma2_22_trace)-sigma2_22
 #   mean_bias[sim_idx,6]=mean(sigma2_22_trace)-sigma2_22
 # }
@@ -314,10 +374,10 @@ for(sim_idx in start.idx:end.idx){
 #     quant_data=tmp_data[(tmp_data>quant[1])&(tmp_data<quant[2])]
 #     p.v=round(t.test(quant_data, mu=0)$p.value,10)
 #     hist(quant_data,nclass=100,main=sprintf('%s bias\n t.test : %s\n mean : %s',label_list[ii],p.v,round(mean(quant_data),2)),xlab=label_list[ii])
-#     abline(v=0,col=2,lwd=3)
+#     abline(v=0,col=2,lwd=3)  
 #   }
 #   par(mfrow=c(1,1))
 # }
 # 
-# beta_hist(median_bias)
+# # beta_hist(median_bias)
 # beta_hist(mean_bias)
