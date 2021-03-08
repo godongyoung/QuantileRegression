@@ -326,3 +326,5 @@ for (type in names(total_df)){
   }
 }
 
+# setwd('/Users/godongyoung/Dropbox/MyFiles/Research/quantile_regression/Rcode')
+# save.image(file='../debugging/Debugging_w_GibbsBQR_data.RData')

@@ -173,7 +173,7 @@ for(sim_idx in 1:nsim){
 }
 
 
-hist(beta_save[,1],nclass=10)
+hist(beta_save[,1],nclass=100)
 colMedians(alpha_save)
 colMedians(beta_save)
 colMeans(alpha_save)
@@ -182,3 +182,48 @@ colMeans(beta_save)
 beta.true
 alpha.true
 p0
+
+
+
+tic()
+mean_bias=matrix(NA,ncol=6,nrow=nsim)
+median_bias=matrix(NA,ncol=6,nrow=nsim)
+for(sim_idx in 1:nsim){
+  load(file=sprintf('../debugging/ALD_sim_anotherimplement_%s.RData',sim_idx))
+  aa=colMedians(beta.trace)
+  bb=colMeans(beta.trace)
+  median_bias[sim_idx,1:2]=(aa-beta.true)
+  mean_bias[sim_idx,1:2]=(bb-beta.true)
+  
+  aa=colMedians(alpha.trace)
+  bb=colMeans(alpha.trace)
+  median_bias[sim_idx,3:4]=(aa-alpha.true)
+  mean_bias[sim_idx,3:4]=(bb-alpha.true)
+  
+  median_bias[sim_idx,5]=median(sigma2_11.trace)-  sigma2_11.true
+  mean_bias[sim_idx,5]=mean(sigma2_11.trace)-sigma2_11.true
+  
+  median_bias[sim_idx,6]=median(sigma2_11.trace)-sigma2_22.true
+  mean_bias[sim_idx,6]=mean(sigma2_11.trace)-sigma2_22.true
+}
+toc()
+
+beta_hist=function(inp_data){
+  label_list=c('beta0','beta1','alpha0','alpha1','sigma2_11','sigma2_22')
+  par(mfrow=c(3,2))
+  for(ii in 1:dim(inp_data)[2]){
+    tmp_data=inp_data[,ii]
+    tmp_data=tmp_data[!is.na(tmp_data)]
+    quant=quantile(tmp_data,c(0.025,0.975))
+    quant_data=tmp_data[(tmp_data>quant[1])&(tmp_data<quant[2])]
+    p.v=round(t.test(quant_data, mu=0)$p.value,10)
+    hist(quant_data,nclass=100,main=sprintf('%s bias\n t.test : %s\n mean : %s',label_list[ii],p.v,round(mean(quant_data),2)),xlab=label_list[ii])
+    abline(v=0,col=2,lwd=3)
+  }
+  par(mfrow=c(1,1))
+}
+
+beta_hist(median_bias)
+beta_hist(mean_bias)
+
+#ALD로 한게 왜 이렇게 튀지.....정상인가.....

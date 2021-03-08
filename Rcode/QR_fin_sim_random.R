@@ -61,10 +61,11 @@ for(sim_idx in 1:nmax){
   P=P+1
   beta=c(3,1.5,2)
   beta=c(3,1.5,2,1,2,3,4,5,6,7,8,9,10)[1:P]
+  alpha=c(10,2)
   # beta=sample(1:100,P)
   # beta=c(10,2)
-  beta=c(50,50)
-  alpha=sample(1:100,2)
+  # beta=c(50,50)
+  # alpha=sample(1:100,2)
   
   
   #generate w1,w2
@@ -97,7 +98,11 @@ for(sim_idx in 1:nmax){
     should.zero=as.numeric(quantile(samp,p0))
     should.zero
   }
-  to_subtract=nleqslv(0.76,to_subt_func,method = 'Broyden')$x;to_subtract
+  if(p0==0.1){to_subtract=1.43}
+  if(p0==0.25){to_subtract=0.72}
+  if(p0==0.5){to_subtract=-0.02}
+  if(p0==0.75){to_subtract=-0.77}
+  if(p0==0.9){to_subtract=-1.555}
   
   g_indx=rbinom(n = n,size = 1,prob = c(0.1))
   n1=sum(g_indx==0)
@@ -342,7 +347,7 @@ for(sim_idx in 1:nmax){
     }
   }
   toc()
-  # save.image(file=sprintf('./debugging/QR_alpharandom_ii_%s.RData',sim_idx))
+  save.image(file=sprintf('../debugging/QR_alpharandom_ii_%s.RData',sim_idx))
 }
 
 tic()

@@ -34,12 +34,12 @@ my_hist=function(inp_data,true_value,inp_text){
 }
 
 # Simulation --------------------------------------------------------------------------------
-nmax=500
+nmax=200
 for(sim_idx in 1:nmax){
   # Make data--------------------------------------------------------------------------------
   set.seed(sim_idx)
   p0=0.5
-  n=1000
+  n=200
   P=2
   #Define A,B
   stopifnot(abs(p0)<1)
@@ -107,7 +107,11 @@ for(sim_idx in 1:nmax){
     should.zero=as.numeric(quantile(samp,p0))
     should.zero
   }
-  to_subtract=nleqslv(0.76,to_subt_func,method = 'Broyden')$x;to_subtract
+  if(p0==0.1){to_subtract=1.43}
+  if(p0==0.25){to_subtract=0.72}
+  if(p0==0.5){to_subtract=-0.02}
+  if(p0==0.75){to_subtract=-0.77}
+  if(p0==0.9){to_subtract=-1.555}
   
   g_indx=rbinom(n = n,size = 1,prob = c(0.1))
   n1=sum(g_indx==0)
@@ -116,6 +120,7 @@ for(sim_idx in 1:nmax){
   samp2=rnorm(n=n2,mean=(to_subtract+1),sd=5)
   samp=c(samp1,samp2)
   ei=samp
+  median(ei)
   #####
   
   y=(X%*%beta)+ei
@@ -325,32 +330,44 @@ beta_hist(mean_bias)
 
 
 
-####################################
-nmax=1e4
-n=200
-tmp_vec=rep(2,n)
-
 tic()
-test_mat=matrix(NA,ncol=n,nrow=nmax)
-for(ii in 1:nmax){
-  test_mat[ii,]=sapply(X = tmp_vec,FUN = function(x) rgig(n = 1,lambda = x,chi = 1,psi = 2))
+mean_bias=matrix(NA,ncol=6,nrow=nmax)
+median_bias=matrix(NA,ncol=6,nrow=nmax)
+for(sim_idx in 1:nmax){
+  load(file=sprintf('../debugging/QR_alpharandom_ii_%s.RData',sim_idx))
+  # load(file=sprintf('../debugging/QR_betarandom_%s.RData',sim_idx))
+  aa=colMedians(beta_trace)
+  bb=colMeans(beta_trace)
+  median_bias[sim_idx,1:2]=(aa-beta)
+  mean_bias[sim_idx,1:2]=(bb-beta)
+  
+  aa=colMedians(alpha_trace)
+  bb=colMeans(alpha_trace)
+  median_bias[sim_idx,3:4]=(aa-alpha)
+  mean_bias[sim_idx,3:4]=(bb-alpha)
+  
+  median_bias[sim_idx,5]=median(sigma2_11_trace)-sigma2_11
+  mean_bias[sim_idx,5]=mean(sigma2_11_trace)-sigma2_11
+  
+  median_bias[sim_idx,6]=median(sigma2_22_trace)-sigma2_22
+  mean_bias[sim_idx,6]=mean(sigma2_22_trace)-sigma2_22
 }
 toc()
 
-tic()
-test_mat=matrix(NA,ncol=n,nrow=nmax)
-for(ii in 1:nmax){
-  for(jj in 1:n){
-    test_mat[ii,jj]=rgig(n = 1,lambda = tmp_vec[jj],chi = 1,psi = 2)
+beta_hist=function(inp_data){
+  label_list=c('beta0','beta1','alpha0','alpha1','sigma2_11','sigma2_22')
+  par(mfrow=c(3,2))
+  for(ii in 1:dim(inp_data)[2]){
+    tmp_data=inp_data[,ii]
+    tmp_data=tmp_data[!is.na(tmp_data)]
+    quant=quantile(tmp_data,c(0.025,0.975))
+    quant_data=tmp_data[(tmp_data>quant[1])&(tmp_data<quant[2])]
+    p.v=round(t.test(quant_data, mu=0)$p.value,10)
+    hist(quant_data,nclass=100,main=sprintf('%s bias\n t.test : %s\n mean : %s',label_list[ii],p.v,round(mean(quant_data),2)),xlab=label_list[ii])
+    abline(v=0,col=2,lwd=3)  
   }
+  par(mfrow=c(1,1))
 }
-toc()
 
-colMeans(test_mat)
-colVars(test_mat)
-dim(test_mat)
-hist(test_mat[,1],nclass=100,xlim = c(0,3))
-hist(test_mat[,2],nclass=100,xlim = c(0,3))
-
-sapply()
-besselI(x, nu, expon.scaled = FALSE)
+# beta_hist(median_bias)
+beta_hist(mean_bias)
