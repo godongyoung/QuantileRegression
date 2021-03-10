@@ -7,7 +7,13 @@ end.idx = as.numeric(args[4])
 print(sprintf("type:%s / p0:%s / start:%s / end:%s",type,p0,start.idx,end.idx))
 
 # rm(list = ls())
-setwd('/Users/godongyoung/Dropbox/MyFiles/Research/quantile_regression/Rcode')
+# tryCatch( # set wording directory to current source file folder
+#   {setwd(getSrcDirectory()[1])}
+#   ,error=function(e){setwd(dirname(rstudioapi::getActiveDocumentContext()$path))}
+# )
+# setwd('C:/Users/admin/Documents/dongyoung/Rcode')
+setwd('D:/dy_result/QuantileRegression/Rcode')
+# setwd('/Users/godongyoung/Dropbox/MyFiles/Research/quantile_regression/Rcode')
 # library(mvtnorm)
 library(MCMCpack)
 library(truncnorm)    
@@ -43,7 +49,6 @@ my_hist=function(inp_data,true_value,inp_text){
 
 # Simulation start --------------------------------------------------------------------------------
 for(sim_idx in start.idx:end.idx){
-  
   set.seed(sim_idx)
   n=200
   P=2
@@ -60,15 +65,15 @@ for(sim_idx in start.idx:end.idx){
   x1i=rnorm(n = n,Mu_x,sqrt(sigma2_xx))
   X=cbind(1,x1i)
   
-  beta=c(3,1.5)
-  alpha=c(10,2)
+  beta=c(1,1)
+  alpha=c(1,1)
   
   #generate w1,w2
   delta1=rnorm(n,0,sd=sqrt(sigma2_11))
   delta2=rnorm(n,0,sd=sqrt(sigma2_22))
   
-  w2=X[,2]+delta2
   w1=X%*%alpha+delta1
+  w2=X[,2]+delta2
   
   # Generate error based on input types & p0 ---------------------------------------
   {if (type=='N'){
@@ -130,7 +135,7 @@ for(sim_idx in start.idx:end.idx){
   pr_sd_beta=100*diag(P)
   
   #IG for sigma
-  aaa=0.1
+  aaa=0.01
   prior_a=aaa
   prior_b=aaa
   #IG for sigma2_xx
@@ -165,10 +170,10 @@ for(sim_idx in start.idx:end.idx){
   #init value
   beta_t=rmvnorm(1,c(0,0),diag(2))
   alpha_t=rnorm(2,0,1)
-  sigma_t=runif(1)
-  sigma2_xx_t=runif(1)
-  sigma2_11_t=runif(1)
-  sigma2_22_t=runif(1)
+  sigma_t=10#runif(1)
+  sigma2_xx_t=10#runif(1)
+  sigma2_11_t=10#runif(1)
+  sigma2_22_t=10#runif(1)
   mux_t=rnorm(1,pr_mean_mux,sqrt(pr_var_mux))
   s_t=rexp(n)
   
@@ -183,22 +188,20 @@ for(sim_idx in start.idx:end.idx){
 
   
   
-  
+  v_t=s_t*sigma_t
   tic()
   for(iter in 1:niter){
     # for(iter in 1:10){
     if(iter%%nprint==1){cat(iter,'th iter is going\n')}
-    
-    v_t=s_t*sigma_t
     # alpha_t=abs(gamma_t)/(ifelse(gamma_t>0,1,0)-p)
     
     #Sample beta-----------------------------------------------------------------
-    post_sd_beta = solve( solve(pr_sd_beta) + t(X/sqrt(v_t))%*%(X/sqrt(v_t))/(B*sigma_t) )
-    post_mean_beta = post_sd_beta %*% (solve(pr_sd_beta)%*%pr_mean_beta + colSums(X*((y-(A*v_t))/(B*sigma_t*v_t))[1:n]))
+    post_sd_beta = solve( solve(pr_sd_beta) + t(X_t/sqrt(v_t))%*%(X_t/sqrt(v_t))/(B*sigma_t) )
+    post_mean_beta = post_sd_beta %*% (solve(pr_sd_beta)%*%pr_mean_beta + colSums(X_t*((y-(A*v_t))/(B*sigma_t*v_t))[1:n]))
     beta_t=rmvnorm(n = 1,mu = post_mean_beta,sigma = post_sd_beta)
     
     #sample_vi (or zi)-----------------------------------------------------------------
-    a_t=(y - (X%*%t(beta_t)))**2/(B*sigma_t)
+    a_t=(y - (X_t%*%t(beta_t)))**2/(B*sigma_t)
     b_t=2/sigma_t+A**2/(B*sigma_t)
     # v_t=sapply(X = a_t, FUN = function(x) rgig(n = 1,lambda = 0.5, chi = x, psi = b_t))
     for(ii in 1:n){
@@ -209,7 +212,7 @@ for(sim_idx in start.idx:end.idx){
     
     #sample sigma-----------------------------------------------------------------
     nu=(prior_a+1.5*n)
-    c=0.5 * (2*prior_b + 2*sum(v_t) + sum((y - (X%*%t(beta_t)+A*v_t))**2/(B*v_t)))
+    c=0.5 * (2*prior_b + 2*sum(v_t) + sum((y - (X_t%*%t(beta_t)+A*v_t))**2/(B*v_t)))
     sigma_t=rinvgamma(n = 1,shape = nu ,scale = c)
     s_t=v_t/sigma_t #Is this right??? or should I just leave s_t as previous(i.e.unupdated) one?
     
@@ -281,28 +284,37 @@ for(sim_idx in start.idx:end.idx){
   save.image(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
 }
 
-# tic()
-# mean_bias=matrix(NA,ncol=6,nrow=nmax)
-# median_bias=matrix(NA,ncol=6,nrow=nmax)
-# for(sim_idx in 1:nmax){
-#   load(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
-#   aa=colMedians(beta_trace)
-#   bb=colMeans(beta_trace)
-#   median_bias[sim_idx,1:2]=(aa-beta)
-#   mean_bias[sim_idx,1:2]=(bb-beta)
-# 
-#   aa=colMedians(alpha_trace)
-#   bb=colMeans(alpha_trace)
-#   median_bias[sim_idx,3:4]=(aa-alpha)
-#   mean_bias[sim_idx,3:4]=(bb-alpha)
-# 
-#   median_bias[sim_idx,5]=median(sigma2_11_trace)-sigma2_11
-#   mean_bias[sim_idx,5]=mean(sigma2_11_trace)-sigma2_11
-# 
-#   median_bias[sim_idx,6]=median(sigma2_22_trace)-sigma2_22
-#   mean_bias[sim_idx,6]=mean(sigma2_22_trace)-sigma2_22
-# }
-# toc()
+nmax=10
+sim_idx=7
+tic()
+mean_bias=matrix(NA,ncol=6,nrow=nmax)
+median_bias=matrix(NA,ncol=6,nrow=nmax)
+summary_mat=matrix(NA,ncol=6,nrow=nmax)
+for(sim_idx in 1:nmax){
+  load(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+  aa=colMedians(beta_trace)
+  bb=colMeans(beta_trace)
+  median_bias[sim_idx,1:2]=(aa-beta.true)
+  mean_bias[sim_idx,1:2]=(bb- beta.true)
+  summary_mat[sim_idx,1:2]=bb
+
+  aa=colMedians(alpha_trace)
+  bb=colMeans(alpha_trace)
+  median_bias[sim_idx,3:4]=(aa-alpha)
+  mean_bias[sim_idx,3:4]=(bb-alpha)
+  summary_mat[sim_idx,3:4]=bb
+
+  median_bias[sim_idx,5]=median(sigma2_11_trace)-sigma2_11
+  mean_bias[sim_idx,5]=mean(sigma2_11_trace)-sigma2_11
+
+  median_bias[sim_idx,6]=median(sigma2_22_trace)-sigma2_22
+  mean_bias[sim_idx,6]=mean(sigma2_22_trace)-sigma2_22
+}
+toc()
+colMeans(summary_mat[1:10,1:4])
+colMedians(summary_mat[1:10,1:4])
+colVars(summary_mat[1:10,1:4])
+beta.true
 # 
 # beta_hist=function(inp_data){
 #   label_list=c('beta0','beta1','alpha0','alpha1','sigma2_11','sigma2_22')
