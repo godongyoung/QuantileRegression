@@ -7,6 +7,7 @@ library(Rfast)
 library(Brq)
 library(bayesQR)
 library(SuppDists)
+library(statmod)
 
 GAL_wo_ME=function(y,X,p0,seed=T){
     if(seed){
@@ -102,7 +103,9 @@ GAL_wo_ME=function(y,X,p0,seed=T){
         #sample_vi (or zi)-----------------------------------------------------------------
         a_t=(y - (X%*%t(beta_t)+sigma_t*C*abs(gamma_t)*s_t))**2/(B*sigma_t)
         b_t=2/sigma_t+A**2/(B*sigma_t)
-        v_t = 1/rinvGauss(n, nu = sqrt(b_t/a_t), lambda = b_t) # which is same for rgig!
+        v_t = 1/rinvgauss(n, mean = sqrt(b_t/a_t), dispersion = 1/ b_t) # which is same for rgig
+        # v_t = 1/rinvGauss(n, nu = sqrt(b_t/a_t), lambda = b_t) # which is same for rgig!
+        stopifnot(sum(is.na(v_t))==0)
         # for(ii in 1:n){
         #     v_t[ii]=rgig(n = 1,lambda = 0.5,chi =a_t[ii],psi = b_t)
         # }
@@ -213,7 +216,8 @@ ALD_wo_ME = function(y,X,p0){
         #Sample vi----------------------------------------------------------------- 
         v_t.a = (y-X%*%t(beta_t))^2/(B*sigma_t)
         v_t.b = 2/sigma_t + A^2/(B*sigma_t)
-        v_t = 1/rinvGauss(n, nu = sqrt(v_t.b/v_t.a), lambda = v_t.b) # which is same for rgig
+        v_t = 1/rinvgauss(n, mean = sqrt(v_t.b/v_t.a), dispersion = 1/ v_t.b) # which is same for rgig
+        # v_t = 1/rinvGauss(n, nu = sqrt(v_t.b/v_t.a), lambda = v_t.b) # which is same for rgig
         # for(ii in 1:n){
         #   v_t[ii]=rgig(n = 1,lambda = 0.5,chi = v_t.a[ii],psi = v_t.b)
         # }
@@ -267,24 +271,33 @@ mBayesQR=function(y,X,p0,norm.approx=T){
 # tic()
 # chk_mat=matrix(NA,ncol=n,nrow=nmax)
 # for(ii in 1:nmax){
-#   chk_mat[ii,]=1/rinvGauss(n, nu = sqrt(v_t.b/v_t.a), lambda = v_t.b)
+#     chk_mat[ii,]=1/rinvGauss(n, nu = sqrt(b_t/a_t), lambda = b_t)
 # }
 # toc()
 # 
 # tic()
 # chk_mat2=matrix(NA,ncol=n,nrow=nmax)
 # for(ii in 1:nmax){
-#   tmp=rep(NA,n)
-#   for(jj in 1:n){
-#     tmp[jj]=rgig(n = 1,lambda = 0.5,chi = v_t.a[jj],psi = v_t.b)    
-#   }
-#   chk_mat2[ii,]=tmp
+#     tmp=rep(NA,n)
+#     for(jj in 1:n){
+#         tmp[jj]=rgig(n = 1,lambda = 0.5,chi = a_t[jj],psi = b_t)
+#     }
+#     chk_mat2[ii,]=tmp
 # }
 # toc()
 # 
-# colMeans(chk_mat2)
-# colMeans(chk_mat)
+# library(statmod)
+# tic()
+# chk_mat3=matrix(NA,ncol=n,nrow=nmax)
+# for(ii in 1:nmax){
+#     chk_mat3[ii,]=1/rinvgauss(n, mean = sqrt(b_t/a_t), dispersion = 1/ b_t)
+# }
+# toc()
 # 
-# colVars(chk_mat2)
+# colMeans(chk_mat)
+# colMeans(chk_mat2)
+# colMeans(chk_mat3)
+# 
 # colVars(chk_mat)
-
+# colVars(chk_mat2)
+# colVars(chk_mat3)
