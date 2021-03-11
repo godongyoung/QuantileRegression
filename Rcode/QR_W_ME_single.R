@@ -1,5 +1,6 @@
 rm(list = ls())
 setwd('C:/MyFiles/Research/quantile regression/')
+source('fn_wo_ME.R')
 # library(mvtnorm)
 library(MCMCpack)
 library(truncnorm)    
@@ -60,19 +61,13 @@ tmp_func2=function(gamma_t){
 # Make Case2 data--------------------------------------------------------------------------------
 set.seed(20200827)
 n=1000
-T.P=1
-total_T.P=T.P+1
-# t <- as.matrix(mvrnorm(n=n,mu = c(3,5),Sigma = 1*diag(T.P)));sum(t)
-t <- matrix(runif(T.P*n,min=0, max=10),ncol=T.P)
-t <- cbind(1,t)
-alpha=as.matrix(sample(1:10,total_T.P,replace = T)/2);alpha
-sigma_delta=2
-X<-t%*%alpha+rnorm(n,0,sd=sigma_delta);summary(X)
-if(min(X)<0){
-    alpha[1]=alpha[1]+abs(min(X)) # shift using true intercept
-    X<-t%*%alpha+rnorm(n,0,sd=sigma_delta);summary(X)
-}
-
+total_T.P=2
+w1i <- runif(n,min=2, max=10)
+W1 <- cbind(1,w1i)
+alpha=c(1,1)
+sigma_delta=1
+X<-W1%*%alpha+rnorm(n,0,sd=sigma_delta)
+stopifnot(min(X)>0)
 # X <- runif(n=n,min=0,max=10)
 y <- 1 + 2*X + rnorm(n=n, mean=0, sd=.6*X)
 plot(X,y)
@@ -83,35 +78,34 @@ total_X.P=2
 p0=0.25
 # set default--------------------------------------------------------------------------------
 # p0=0.95
-for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
-    # for(p0 in c(0.5)){
-    times=4
+# for(p0 in c(0.05,0.25,0.75,0.95)){
+for(p0 in c(0.1,0.5,0.9)){
+    times=1
     niter    <- 30000*times
     nburn    <- 5000*times
     nthin    <- 5*times
-    nprint   <- 1000*times
+    nprint   <- 10000*times
     nmcmc=(niter-nburn)/nthin
     
     #unif for gamma
     U=nleqslv(0,tmp_func1)$x
     L=-nleqslv(0,tmp_func2)$x
-    L;U
     
     #N for beta
     pr_mean_beta=rep(0,total_X.P)
-    pr_sd_beta=3*diag(total_X.P)
+    pr_sd_beta=100*diag(total_X.P)
     
     #IG for sigma
-    prior_a=3
-    prior_b=2
+    prior_a=0.01
+    prior_b=0.01
     
     #IG for sigma_delta
-    prior_c=3
-    prior_d=2
+    prior_c=0.01
+    prior_d=0.01
     
     #N for alpha
     pr_mean_alpha=rep(0,total_T.P)
-    pr_sd_alpha=3*diag(total_T.P)
+    pr_sd_alpha=100*diag(total_T.P)
     
     
     beta_trace=matrix(NA,nrow=nmcmc,ncol=total_X.P)
@@ -129,10 +123,10 @@ for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
     beta_t=rnorm(total_X.P,0,1)
     alpha_t=rnorm(total_T.P,0,1)
     sigma_t=rinvgamma(1,prior_a,prior_b)
-    sigma_delta_t=rinvgamma(1,prior_c,prior_d)
+    sigma_delta_t=10#rinvgamma(1,prior_c,prior_d)
     s_t=rexp(n)
     k_t=rtruncnorm(n = n,a = 0,b = Inf,mean = 0,sd = 1)
-    X_1t=t%*%alpha_t
+    X_1t=W1%*%alpha_t
     X_t=cbind(1,X_1t)
     
     accept_n=0
@@ -145,15 +139,13 @@ for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
         p.gamma_t=ifelse(gamma_t>0,p0/g_gamma,1-(1-p0)/g_gamma)
         stopifnot(abs(p.gamma_t)<1)
         A=(1-2*p.gamma_t)/(p.gamma_t*(1-p.gamma_t));B=2/(p.gamma_t*(1-p.gamma_t));C=1/(ifelse(gamma_t>0,1,0)-p.gamma_t)
-        
         v_t=s_t*sigma_t
-        # alpha_t=abs(gamma_t)/(ifelse(gamma_t>0,1,0)-p)
-        
         
         #Sample beta-----------------------------------------------------------------
         post_sd_beta = solve( solve(pr_sd_beta) + t(X_t/sqrt(v_t))%*%(X_t/sqrt(v_t))/(B*sigma_t) )
         post_mean_beta = post_sd_beta %*% (solve(pr_sd_beta)%*%pr_mean_beta + colSums(X_t*((y-(sigma_t*C*abs(gamma_t)*k_t+A*v_t))/(B*sigma_t*v_t))[1:n]))
         beta_t=rmvnorm(n = 1,mu = post_mean_beta,sigma = post_sd_beta)
+        stopifnot(sum(is.nan(beta_t))==0)
         
         #sample ki-----------------------------------------------------------------
         post_var_ki=1/((C*gamma_t)**2*sigma_t/(B*v_t)+1)
@@ -163,18 +155,16 @@ for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
         #sample_vi (or si)-----------------------------------------------------------------
         a_t=(y - (X_t%*%t(beta_t)+sigma_t*C*abs(gamma_t)*k_t))**2/(B*sigma_t)
         b_t=2/sigma_t+A**2/(B*sigma_t)
-        for(k in 1:n){
-            v_t[k]=rgig(n = 1,lambda = 0.5,chi =a_t[k],psi = b_t)
-        }
+        v_t = 1/rinvgauss(n, mean = sqrt(b_t/a_t), dispersion = 1/ b_t) # which is same for rgig
+        # for(k in 1:n){
+        #     v_t[k]=rgig(n = 1,lambda = 0.5,chi =a_t[k],psi = b_t)
+        # }
         s_t=v_t/sigma_t
-        #cat('v_t',v_t[1:3],'\n')
         
         #sample X_1t-----------------------------------------------------------------
         V_X = (sigma_t**2*B*s_t*sigma_delta_t**2)/((sigma_delta_t*beta_t[2])**2+sigma_t**2*B*s_t)
-        # 1/(beta_t[2]**2/(sigma_t**2*B*s_t)+1/sigma_delta_t**2)
-        M_X = (sigma_delta_t**2*(y-beta_t[1]-sigma_t*C*abs(gamma_t)*k_t-sigma_t*A*s_t)*beta_t[2]+sigma_t**2*B*s_t*t%*%alpha_t) /((sigma_delta_t*beta_t[2])**2+sigma_t**2*B*s_t)
-        #cat('M_X',M_X[1:3],'\n')
-        X_1t=rnorm(n = n,mean = M_X,sd = V_X)
+        M_X = (sigma_delta_t**2*(y-beta_t[1]-sigma_t*C*abs(gamma_t)*k_t-sigma_t*A*s_t)*beta_t[2]+sigma_t**2*B*s_t*W1%*%alpha_t) /((sigma_delta_t*beta_t[2])**2+sigma_t**2*B*s_t)
+        X_1t=rnorm(n = n,mean = M_X,sd = sqrt(V_X))
         X_t=cbind(1,X_1t)
         
         #sample sigma-----------------------------------------------------------------
@@ -214,15 +204,14 @@ for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
         stopifnot((L<gamma_t)&(gamma_t<U))
         
         #sample sigma_delta-----------------------------------------------------------------
-        # post_c=prior_c+0.5*n
         post_c=prior_c+1.5*n
-        post_d=0.5*sum((X_1t-t%*%alpha_t)**2)+prior_d
+        post_d=0.5*sum((X_1t-W1%*%alpha_t)**2)+prior_d
         sigma_delta_t=sqrt(rinvgamma(1,post_c,post_d))
         #cat('sigma_delta_t',sigma_delta_t,'\n')
         
         #sample alpha-----------------------------------------------------------------
-        V_delta=solve(1/sigma_delta_t**2*(t(t)%*%t+sigma_delta_t**2*solve(pr_sd_alpha)))
-        M_delta=solve(t(t)%*%t+sigma_delta_t**2*solve(pr_sd_alpha))%*%t(X_1t%*%t+sigma_delta_t**2*t(pr_mean_alpha)%*%solve(pr_sd_alpha))
+        V_delta=solve(1/sigma_delta_t**2*(t(W1)%*%W1+sigma_delta_t**2*solve(pr_sd_alpha)))
+        M_delta=solve(t(W1)%*%W1+sigma_delta_t**2*solve(pr_sd_alpha))%*%t(X_1t%*%W1+sigma_delta_t**2*t(pr_mean_alpha)%*%solve(pr_sd_alpha))
         alpha_t=mvrnorm(n = 1,mu = M_delta,Sigma = V_delta)
         #cat('alpha_t',alpha_t,'\n')
         #cat('------------------------------------------------------------------\n')
@@ -241,50 +230,36 @@ for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
     }
     toc()
     
-    # ts.plot(beta_trace[,1])
-    # plot(X[,2],y)
-    # plot(X_t%*%colMeans(beta_trace[1000:which(is.na(beta_trace[,1]))[1],],na.rm = T),y)
-    # abline(a=0,b=1)
-    # 
-    # plot(t[,2],y)
-    # plot(t[,2],X[,2])
-    # abline(a=0,b=1)
-    
+    save.image(file=sprintf('../debugging/ME_single_%s.RData',p0))
     # save(beta_trace,X_trace,alpha_trace,file=sprintf('Measurement_Trace_Single_%s.RData',p0))
     # save(beta_trace,X_trace,alpha_trace,file=sprintf('Measurement_Trace_Single_%s_iterlong.RData',p0))
 }
 
-
-
-plot(t[,2], y, main="", cex=.6, xlab="t")
-for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
-    load(file=sprintf('Measurement_Trace_Single_%s.RData',p0))
-    # beta.est=colMeans(beta_trace[1:(which(is.na(beta_trace[,1]))[1]-1),])
-    # alpha.est=colMeans(alpha_trace[1:(which(is.na(beta_trace[,1]))[1]-1),])
+p0=0.1
+plot(W1[,2],y)
+for(p0 in c(0.05,0.1,0.25,0.5,0.75,0.9,0.95)){
+    load(file=sprintf('../debugging/ME_single_%s.RData',p0))
     
     alpha.est=colMeans(alpha_trace[,])
     beta.est=colMeans(beta_trace[,])
+        
     abline(a=beta.est[1]+beta.est[2]*alpha.est[1],b=beta.est[2]*alpha.est[2])
-    # abline(a=beta.est[1],beta.est[2])
     Sys.sleep(1)
 }
-for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
-    load(file=sprintf('Measurement_Trace_Single_%s.RData',p0))
-    par(mfrow=c(2,2))
-    ts.plot(alpha_trace[,1])
-    ts.plot(alpha_trace[,2])
-    ts.plot(beta_trace[,1])
-    ts.plot(beta_trace[,2])
-    par(mfrow=c(1,1))
-}
 
-par(mfrow=c(3,2))
-for(p0 in c(0.05,0.25,0.5,0.75,0.95)){
-    load(file=sprintf('Measurement_Trace_Single_%s.RData',p0))
-    # X.est=colMeans(X_trace[1:(which(is.na(beta_trace[,1]))[1]-1),])
+for(p0 in c(0.05,0.1,0.25,0.5,0.75,0.9,0.95)){
+    load(file=sprintf('../debugging/ME_single_%s.RData',p0))
+    
     X.est=colMeans(X_trace[,])
     plot(X.est,X[,2],main=p0)
     abline(a=0,b=1)
-    
 }
-par(mfrow=c(1,1))
+
+for(p0 in c(0.05,0.1,0.25,0.5,0.75,0.9,0.95)){
+    load(file=sprintf('../debugging/ME_single_%s.RData',p0))
+    
+    print(p0)
+    print(colMeans(alpha_trace[,]))
+    print(colMeans(beta_trace[,]))
+}
+mean(sigma_trace)
