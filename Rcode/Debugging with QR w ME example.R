@@ -1,3 +1,4 @@
+#Stopped during implementation. 0316
 #-----------------
 rm(list = ls())
 # library(mvtnorm)
@@ -190,14 +191,8 @@ GAL_QR=function(y,X,p0){
 # plot(xi,y)
 
 # Make Data----------------------------------
-# ####
-# data("ImmunogG")
-# head(ImmunogG)
-# 
-# y=ImmunogG$IgG
-# X=cbind(1,ImmunogG$Age,ImmunogG$Age^2)
-
-### BMQR for linear models data-----------------------------------
+### QR w ME data-----------------------------------
+not implemented yet
 tic()
 nmax=1000
 beta_save1=matrix(NA,ncol=2,nrow=nmax)
