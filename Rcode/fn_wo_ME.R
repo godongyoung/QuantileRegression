@@ -273,7 +273,7 @@ NQR=function(y,X,p0){
     }
     
     log.likeli.g=function(g.t, lambda.t){
-        mspline=spline(x = tau.i,y = g.t,xout = ImmunogG$Age)
+        mspline=spline(x = tau.i,y = g.t,xout = X[,2])
         ui=y-mspline$y
         term1 = -sum(qloss(ui,p0))
         
