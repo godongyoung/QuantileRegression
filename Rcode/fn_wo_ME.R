@@ -254,6 +254,167 @@ mBayesQR=function(y,X,p0,norm.approx=T){
     return(res_list)
 }
 
+mQR=function(y,X,p0){
+    res = rq(y~X[,-1],p0)
+    beta.est = res$coefficients
+    res_list=list()
+    res_list[['beta_est']]=beta.est
+    return(res_list)
+}
+
+
+
+
+NQR=function(y,X,p0){
+    
+    # Function --------------------------------------------------------------------------------
+    qloss=function(u,p0){
+        return (u*(p0-(u<0)))
+    }
+    
+    log.likeli.g=function(g.t, lambda.t){
+        mspline=spline(x = tau.i,y = g.t,xout = ImmunogG$Age)
+        ui=y-mspline$y
+        term1 = -sum(qloss(ui,p0))
+        
+        term2 = -0.5 * lambda.t * (g.t) %*% K %*% t(g.t)
+        return(term1+term2)
+    }
+    
+    log.likeli.l=function(lambda.f,lambda.b,g.t){
+        term1 = (N-2)/2*log(lambda.f) 
+        term2 = -0.5 * lambda.f * (g.t) %*% K %*% t(g.t)
+        term3 = dgamma(x = lambda.f,shape = labmda.a, scale = labmda.b, log = T)
+        term4 = dlnorm(x = lambda.b, meanlog = log(lambda.f), sdlog = sqrt(jump_lambda),log = T)  
+        return (term1 + term2 + term3)
+    }
+    
+    
+    
+    # Set Defaults --------------------------------------------------------------------------------
+    niter    <- 30000
+    nburn    <- 5000
+    nthin    <- 5
+    nprint   <- 10000
+    nmcmc=(niter-nburn)/nthin
+
+    N=30
+    tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
+    
+    hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
+    # Make Q matrix
+    Q=matrix(0,nrow=N,ncol=(N-2))
+    for(j in seq(2,N-2)){
+        Q[(j-1),j] = 1/hi[(j-1)]
+        Q[j,j] = -1/hi[(j-1)] - 1/hi[j]
+        Q[(j+1),j] = 1/hi[j]
+    }
+    ## This is suspectable!!!
+    Q[1,1] = -1/hi[(j-1)] - 1/hi[j]
+    Q[2,1] = 1/hi[j]
+    
+    # Make R matrix
+    R=matrix(0,nrow=(N-2),ncol=(N-2))
+    for(i in seq(2,N-2)){
+        R[i,i] = (hi[i-1] + hi[i])/3
+        if(i<(N-2)){
+            R[(i+1),i] = hi[i]/6
+            R[i,(i+1)] = hi[i]/6
+        }
+    }
+    ## This is suspectable!!!
+    R[1,1] = (hi[i-1] + hi[i])/3
+    R[1,2] = hi[i]/6
+    R[2,1] = hi[i]/6
+    
+    # Make K matrix
+    K=Q%*%solve(R)%*%t(Q)
+    stopifnot(N-2==qr(K)$rank)
+    ev=eigen(K)
+    mus=ev$values[1:(N-2)]
+    
+    # initial values --------------------------------------------------------------------------------
+    BQR_res = mBayesQR(y,X,p0)
+    beta.est=colMeans(BQR_res$beta_trace)
+    g0 = beta.est[1]+beta.est[2]*tau.i+beta.est[3]*tau.i^2
+    msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
+    lambda0=msmooth.spline$lambda
+    
+    # Set Priors --------------------------------------------------------------------------------
+    labmda.b=0.1/lambda0
+    labmda.a=lambda0/labmda.b
+    
+    # Make trace --------------------------------------------------------------------------------
+    g_trace=matrix(NA,ncol=N,nrow=nmcmc)
+    lambda_trace=rep(NA,nmcmc)
+    # Set jumping rules --------------------------------------------------------------------------------
+    # sigma=1
+    # # jump_g=sigma^2*ginv(K)/lambda0
+    # ngrid = 100
+    # sigma_range=seq(1e-6,6,length.out = ngrid)
+    # FOE = rep(NA,ngrid)
+    # for(idx in 1:length(sigma_range)){
+    #   sigma = sigma_range[idx] 
+    #   jump_g=sigma^2*diag(N)
+    #   tmp.sample = rmvnorm(n = 10,mu = g0,sigma = jump_g)
+    #   FOE[idx] = mean(apply(tmp.sample,MARGIN = 1,FUN = function(x) sum((x-g0)^2)))
+    # }
+    # plot(sigma_range,FOE)
+    
+    sigma=0.01
+    jump_g=sigma^2*diag(N)
+    jump_lambda = 1
+    
+    # iter start --------------------------------------------------------------------------------
+    g.t=matrix(g0,nrow = 1)
+    lambda.t=lambda0
+    accept_g = 0
+    accept_l = 0
+    
+    tic()
+    for(iter in 1:niter){
+        if(iter%%nprint==1){cat(iter,'th iter is going\n')}
+        # Sample g-----------------------------------------------------------------
+        g.star = rmvnorm(n = 1,mu = g.t,sigma = jump_g)
+        log_accept.r = log.likeli.g(g.star,lambda.t) - log.likeli.g(g.t,lambda.t)
+        
+        log.u = runif(1)
+        if(log.u < log_accept.r){
+            g.t = g.star
+            accept_g = accept_g + 1
+        }
+        
+        # Sample lambda-----------------------------------------------------------------
+        # lamda.star = exp(rnorm(1,mean = log(lambda.t),sd = sqrt(jump_lambda)))
+        lambda.star = rlnorm(1,meanlog = log(lambda.t),sdlog = sqrt(jump_lambda))
+        log_accept.r = log.likeli.l(lambda.star,lambda.t,g.t) - log.likeli.l(lambda.t,lambda.star,g.t)  
+        
+        log.u = runif(1)
+        if(log.u < log_accept.r){
+            lambda.t = lambda.star
+            accept_l = accept_l + 1
+        }
+        # Save samples in each thin-----------------------------------------------------------------
+        if((iter > nburn) & (iter %% nthin== 0) ){
+            thinned_idx=(iter-nburn)/nthin
+            g_trace[thinned_idx,]=g.t
+            lambda_trace[thinned_idx]=lambda.t
+        }
+    }
+    toc()
+    
+    
+    res_list=list()
+    res_list[['g_trace']]=g_trace
+    res_list[['lambda_trace']]=lambda_trace
+    res_list[['g_accept_ratio']]=accept_g/niter
+    res_list[['l_accept_ratio']]=accept_l/niter
+    res_list[['Knots']]=tau.i
+    return(res_list)
+}
+
+
+
 # res=GAL_wo_ME(y,X,p0)
 # bayesQR_res=mBayesQR(y,X,p0)
 # 
