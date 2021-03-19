@@ -135,14 +135,14 @@ log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
   return (sum(term1 + term2 + term3 + term4))
 }
 
-log.likeli.x.each=function(X.1t,idx){ ### This can be changed with individual updates!
-  mspline=spline(x = tau.i,y = g.t,xout = X.1t[idx]) # this is where X.t contributes
+log.likeli.x.each=function(X.1t.each,idx){ ### This can be changed with individual updates!
+  mspline=spline(x = tau.i,y = g.t,xout = X.1t.each) # this is where X.t contributes
   ui=y[idx]-mspline$y
   term1 = -(qloss(ui,p0))
-  term2 = dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_11.t),log = T)
-  term2 = -1/(2*sigma2_11.t)*(W1[idx]-(alpha.t[1]+alpha.t[2]*X.1t[idx]))^2
-  term3 = -1/(2*sigma2_22.t)*(W2[idx]-X.1t[idx])^2
-  term4 = -1/(2*sigma2_xx.t)*(X.1t[idx]-mux.t)^2
+  term2 = dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t.each,sd = sqrt(sigma2_11.t),log = T)
+  term2 = -1/(2*sigma2_11.t)*(W1[idx]-(alpha.t[1]+alpha.t[2]*X.1t.each))^2
+  term3 = -1/(2*sigma2_22.t)*(W2[idx]-X.1t.each)^2
+  term4 = -1/(2*sigma2_xx.t)*(X.1t.each-mux.t)^2
   return (sum(term1 + term2 + term3 + term4))
 }
 # Set Defaults --------------------------------------------------------------------------------
@@ -258,25 +258,25 @@ accept_x = 0
 
 
 ##### Debugging part
-plot(X.t[,2],y)
-mspline=spline(x = tau.i,y = g.t,xout = tau.i)
-points(tau.i,mspline$y,type = 'l')
-
-mspline=spline(x = tau.i,y = g.t,xout = X.t[,2])
-mspline=spline(x = tau.i,y = g.star,xout = X.t[,2])
-ui=y-mspline$y
-term1 = -sum(qloss(ui,p0));term1
-
-X.1.star = rnorm(n = n,mean = X.1t,sd = pr.sigma.x)
-log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
-  mspline=spline(x = tau.i,y = g.t,xout = X.1t) # this is where X.t contributes
-  ui=y-mspline$y
-  term1 = -sum(qloss(ui,p0))
-  term2 = dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_11.t),log = T)
-  term3 = dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T)
-  term4 = dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T)
-  return (sum(term1 + term2 + term3 + term4))
-}
+# plot(X.t[,2],y)
+# mspline=spline(x = tau.i,y = g.t,xout = tau.i)
+# points(tau.i,mspline$y,type = 'l')
+# 
+# mspline=spline(x = tau.i,y = g.t,xout = X.t[,2])
+# mspline=spline(x = tau.i,y = g.star,xout = X.t[,2])
+# ui=y-mspline$y
+# term1 = -sum(qloss(ui,p0));term1
+# 
+# X.1.star = rnorm(n = n,mean = X.1t,sd = pr.sigma.x)
+# log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
+#   mspline=spline(x = tau.i,y = g.t,xout = X.1t) # this is where X.t contributes
+#   ui=y-mspline$y
+#   term1 = -sum(qloss(ui,p0))
+#   term2 = dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_11.t),log = T)
+#   term3 = dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T)
+#   term4 = dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T)
+#   return (sum(term1 + term2 + term3 + term4))
+# }
 ###########Debugging part end
 
 # iter start --------------------------------------------------------------------------------
@@ -305,7 +305,7 @@ for(iter in 1:niter){
   }
   
   #sample X.1t-----------------------------------------------------------------
-  ### This can be changed with individual updates!
+  ### Update at all X1i.t at once
   # X.1.star = rmvnorm(n = 1,mu = X.1t,sigma = jump_x)
   X.1.star = rnorm(n = n,mean = X.1t,sd = pr.sigma.x)
   log_accept.r = log.likeli.x(X.1.star) - log.likeli.x(X.1t)
@@ -315,39 +315,49 @@ for(iter in 1:niter){
     X.t=cbind(1,X.1t)
     accept_x = accept_x + 1
   }
-  
+  ### Individual update
+  # for(idx in 1:n){
+  #   X.1.star.each = rnorm(n = 1,mean = X.1t[idx],sd = pr.sigma.x)
+  #   log_accept.r = log.likeli.x.each(X.1.star.each,idx) - log.likeli.x.each(X.1t[idx],idx)
+  #   log.u = log(runif(1))
+  #   if(log.u < log_accept.r){
+  #     X.1t[idx] = X.1.star.each
+  #     accept_x = accept_x + 1
+  #   }
+  # }
+  # X.t=cbind(1,X.1t)
   
   #sample sigma2_xx-----------------------------------------------------------------
   post_ax=0.5*n+prior_ax
   post_bx=prior_bx+1/2*sum((X.1t-mux.t)^2)
-  sigma2_xx_t=rinvgamma(1,post_ax,post_bx)
-  stopifnot(sigma2_xx_t>0)
+  sigma2_xx.t=rinvgamma(1,post_ax,post_bx)
+  stopifnot(sigma2_xx.t>0)
   #cat('accept2\n')
   
   #sample sigma2_11-----------------------------------------------------------------
   post_a1=0.5*n+prior_a1
   post_b1=prior_b1+1/2*sum((W1-(alpha.t[1]+alpha.t[2]*X.1t))^2)
-  sigma2_11_t=rinvgamma(1,post_a1,post_b1)
-  stopifnot(sigma2_11_t>0)
+  sigma2_11.t=rinvgamma(1,post_a1,post_b1)
+  stopifnot(sigma2_11.t>0)
   #cat('accept3\n')
   
   #sample sigma2_22-----------------------------------------------------------------
   post_a2=0.5*n+prior_a2
   post_b2=prior_b2+1/2*sum((W2-X.1t)^2)
-  sigma2_22_t=rinvgamma(1,post_a2,post_b2)
-  stopifnot(sigma2_22_t>0)
+  sigma2_22.t=rinvgamma(1,post_a2,post_b2)
+  stopifnot(sigma2_22.t>0)
   #cat('accept4\n')
   
   #sample mux-----------------------------------------------------------------
-  post_V_mux=1/(n/sigma2_xx_t+1/pr_var_mux)
-  post_M_mux=(sum(X.1t)/sigma2_xx_t+pr_mean_mux/pr_var_mux)/(n/sigma2_xx_t+1/pr_var_mux)
+  post_V_mux=1/(n/sigma2_xx.t+1/pr_var_mux)
+  post_M_mux=(sum(X.1t)/sigma2_xx.t+pr_mean_mux/pr_var_mux)/(n/sigma2_xx.t+1/pr_var_mux)
   mux.t=rnorm(n = 1,mean = post_M_mux,sd = sqrt(post_V_mux))
   #cat('accept5\n')
   
   #sample alpha-----------------------------------------------------------------
   ### Can I sample 2 alphsa in Gibbs at the same time? i.e. Collapsed Gibbs is okay? Maybe it is okay! it satisfy the condition
-  post_M_alpha=solve(1/sigma2_11_t*t(X.t)%*%X.t+solve(pr_sd_alpha))%*%(1/sigma2_11_t*t(X.t)%*%W1+solve(pr_sd_alpha)%*%pr_mean_alpha)
-  post_V_alpha=solve(1/sigma2_11_t*t(X.t)%*%X.t+solve(pr_sd_alpha))
+  post_M_alpha=solve(1/sigma2_11.t*t(X.t)%*%X.t+solve(pr_sd_alpha))%*%(1/sigma2_11.t*t(X.t)%*%W1+solve(pr_sd_alpha)%*%pr_mean_alpha)
+  post_V_alpha=solve(1/sigma2_11.t*t(X.t)%*%X.t+solve(pr_sd_alpha))
   alpha.t=mvrnorm(n = 1,mu = post_M_alpha,Sigma = post_V_alpha)
   #cat('accept6\n')
   #cat('alpha.t',alpha.t,'\n')
@@ -369,8 +379,20 @@ for(iter in 1:niter){
 }
 toc()
 plot(colMeans(X_trace),X[,2])
+idx=100
+ts.plot(X_trace[,idx])
+abline(h=X[idx,2])
+
+ts.plot(g_trace[,1])
+
+plot(colMeans(alpha_trace)[1]+colMeans(alpha_trace)[2]*colMeans(X_trace),W1);abline(0,1)
+plot(colMeans(X_trace),W2);abline(0,1)
+
+mean(sigma2_11_trace)
+mean(sigma2_22_trace)
 mean(mux_trace)
 accept_g/niter
+accept_x/niter
 #End#################
 # NQR_res=NQR_w_MME(y,W1,W2,p0,inp.min,inp.max )
 # plot(colMeans(NQR_res$X_trace),X[,2])
@@ -378,3 +400,10 @@ accept_g/niter
 # NQR_res$g_accept_ratio
 # NQR_res$g_trace
 ts.plot(mux_trace)
+
+g.est=colMeans(g_trace)
+mspline=spline(x = tau.i,y = g.est,xout = tau.i)
+plot(X[,2],y)
+points(tau.i,mspline$y,type = 'l')    
+plot(colMeans(X_trace),y)
+points(tau.i,mspline$y,type = 'l')    
