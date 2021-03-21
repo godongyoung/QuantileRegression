@@ -19,6 +19,9 @@ set.seed(20210317)
 # Make data--------------------------------------------------------------------------------
 p0=0.25
 n=1000
+inp.version=1
+multiply_c=5 
+N=30
 
 Mu_x=5
 sigma2_xx=1
@@ -56,18 +59,6 @@ smooth.y=function(knots,g.tau,xout,version=1){
   return(mspline$y)
 }
 
-lambda.t=0.08
-inp.version=1
-# g.true=smooth.y(X[,2],y,tau.i,version=inp.version)
-# 
-# ui=y-smooth.y(tau.i,g.t,X.t[,2],version=inp.version)
-# term1 = -sum(qloss(ui,p0));term1
-# 
-# ui=y-smooth.y(tau.i,g.true,X.t[,2],version=inp.version)
-# term1 = -sum(qloss(ui,p0));term1
-# 
-# plot(X[,2],y)
-# points(tau.i,g.true,type = 'l')
 
 log.likeli.g=function(g.t, lambda.t,X.t){
   y.est=smooth.y(tau.i,g.t,X.t[,2],version=inp.version)
@@ -96,7 +87,7 @@ log.likeli.x=function(X.1t,lambda.t){ ### This can be changed with individual up
 }
 
 # Set Defaults --------------------------------------------------------------------------------
-multiply_c=5
+
 niter    <- 30000*multiply_c
 nburn    <- 5000*multiply_c
 nthin    <- 5*multiply_c
@@ -104,7 +95,6 @@ nprint   <- 10000*multiply_c
 nmcmc=(niter-nburn)/nthin
 
 n = length(y)
-N=30
 inp.min = min(X[,2]); inp.max = max(X[,2])
 # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
 tau.i=seq(from = inp.min,to = inp.max,length.out = N)
@@ -230,15 +220,26 @@ accept_x = 0
 # X.1.star = rnorm(n = n,mean = X.1t,sd = pr.sigma.x)
 # plot(X.1t,W2);abline(0,1)
 # log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
-  # mspline=spline(x = tau.i,y = g.t,xout = X.1t) # this is where X.t contributes
-  # ui=y-mspline$y
-  # term1 = -sum(qloss(ui,p0))
-  # term2 = dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_11.t),log = T)
-  # term3 = dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T)
-  # term4 = dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T)
+# mspline=spline(x = tau.i,y = g.t,xout = X.1t) # this is where X.t contributes
+# ui=y-mspline$y
+# term1 = -sum(qloss(ui,p0))
+# term2 = dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_11.t),log = T)
+# term3 = dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T)
+# term4 = dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T)
 #   return (sum(term1 + term2 + term3 + term4))
 # }
 sigma2_22.t=1
+
+g.true=smooth.y(X[,2],y,tau.i,version=2)
+ui=y-smooth.y(tau.i,g.t,X.t[,2],version=inp.version)
+term1 = -sum(qloss(ui,p0));term1
+
+ui=y-smooth.y(tau.i,g.true,X.t[,2],version=inp.version)
+term1 = -sum(qloss(ui,p0));term1
+
+plot(X[,2],y)
+points(tau.i,smooth.y(tau.i,g.true,tau.i,version=inp.version),type = 'l')
+
 ###########Debugging part end
 
 # iter start --------------------------------------------------------------------------------
@@ -354,6 +355,8 @@ for(iter in 1:niter){
   }
 }
 toc()
+
+
 
 accept_g/niter
 accept_x/niter
