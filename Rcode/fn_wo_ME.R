@@ -266,15 +266,35 @@ mQR=function(y,X,p0){
 
 
 NQR=function(y,X,p0){
+    inp.version=3
     
     # Function --------------------------------------------------------------------------------
     qloss=function(u,p0){
         return (u*(p0-(u<0)))
     }
+
+    smooth.y=function(knots,g.tau,xout,version=1){
+        if(version==1){
+            mspline=spline(x = knots,y = g.tau,xout = xout)
+            y.est=mspline$y
+        }
+        if(version==2){
+            msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
+            mspline=predict(msmooth.spline,xout)
+            y.est=mspline$y
+        }
+        if(version==3){
+            g.tau=as.numeric(g.tau)
+            fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+            y.est=predict(fit.ns, data.frame(knots=xout))
+        }
+        return(y.est)
+    }
     
+        
     log.likeli.g=function(g.t, lambda.t){
-        mspline=spline(x = tau.i,y = g.t,xout = X[,2])
-        ui=y-mspline$y
+        y.est=smooth.y(tau.i,g.t,X[,2],version=inp.version)
+        ui=y-y.est
         term1 = -sum(qloss(ui,p0))
         
         term2 = -0.5 * lambda.t * (g.t) %*% K %*% t(g.t)
@@ -336,7 +356,10 @@ NQR=function(y,X,p0){
     # initial values --------------------------------------------------------------------------------
     BQR_res = mBayesQR(y,X,p0)
     beta.est=colMeans(BQR_res$beta_trace)
-    g0 = beta.est[1]+beta.est[2]*tau.i+beta.est[3]*tau.i^2
+    g0=rep(0,N)
+    for(param.idx in 1:length(beta.est)){
+        g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0
+    }
     msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
     lambda0=msmooth.spline$lambda
     
@@ -378,7 +401,7 @@ NQR=function(y,X,p0){
         g.star = rmvnorm(n = 1,mu = g.t,sigma = jump_g)
         log_accept.r = log.likeli.g(g.star,lambda.t) - log.likeli.g(g.t,lambda.t)
         
-        log.u = runif(1)
+        log.u = log(runif(1))
         if(log.u < log_accept.r){
             g.t = g.star
             accept_g = accept_g + 1
@@ -389,7 +412,7 @@ NQR=function(y,X,p0){
         lambda.star = rlnorm(1,meanlog = log(lambda.t),sdlog = sqrt(jump_lambda))
         log_accept.r = log.likeli.l(lambda.star,lambda.t,g.t) - log.likeli.l(lambda.t,lambda.star,g.t)  
         
-        log.u = runif(1)
+        log.u = log(runif(1))
         if(log.u < log_accept.r){
             lambda.t = lambda.star
             accept_l = accept_l + 1
