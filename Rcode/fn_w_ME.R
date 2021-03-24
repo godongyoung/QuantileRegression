@@ -464,6 +464,11 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3){
   
   BQR_res = mBayesQR(y,X.t,p0)
   beta.est=colMeans(BQR_res$beta_trace)
+  if (sum(is.nan(beta.est))>0){ # for unknown error
+    QR_res=mQR(mcycle$accel,cbind(1,mcycle$times),p0)
+    beta.est=QR_res$beta_est
+  }
+  
   g0=rep(0,N)
   for(param.idx in 1:length(beta.est)){
     g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0

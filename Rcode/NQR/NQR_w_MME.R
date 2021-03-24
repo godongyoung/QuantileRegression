@@ -47,7 +47,7 @@ for(sim_idx in 1:nmax){
   W1=X%*%alpha+delta1
   W2=X[,2]+delta2
   
-  NQR_res=NQR_w_MME(y,W1,W2,p0,inp.version = 1,multiply_c = 3)
+  NQR_res=NQR_w_MME(y,W1,W2,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 1,multiply_c = 3)
   save(NQR_res, file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
   
 }
