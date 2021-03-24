@@ -8,7 +8,7 @@ library(Brq)
 library(bayesQR)
 library(SuppDists)
 library(statmod)
-
+library(splines)
 GAL_wo_ME=function(y,X,p0,seed=T){
     if(seed){
         set.seed(20210310)    
@@ -265,8 +265,8 @@ mQR=function(y,X,p0){
 
 
 
-NQR=function(y,X,p0){
-    inp.version=3
+NQR=function(y,X,p0, inp.version=3, multiply_c=1){
+    # inp.version=3 # version 1 for quick & dirty solution
     
     # Function --------------------------------------------------------------------------------
     qloss=function(u,p0){
@@ -312,10 +312,11 @@ NQR=function(y,X,p0){
     
     
     # Set Defaults --------------------------------------------------------------------------------
-    niter    <- 30000
-    nburn    <- 5000
-    nthin    <- 5
-    nprint   <- 10000
+    
+    niter    <- 30000*multiply_c
+    nburn    <- 5000*multiply_c
+    nthin    <- 5*multiply_c
+    nprint   <- 10000*multiply_c
     nmcmc=(niter-nburn)/nthin
 
     N=30
