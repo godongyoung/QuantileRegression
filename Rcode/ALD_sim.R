@@ -23,38 +23,16 @@ library(GIGrvg)
 library(Rfast)
 
 # Function --------------------------------------------------------------------------------
-tmp_func=function(gamma_t){
-  tmp.y=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)
-  tmp.y
-}
 
-
-tmp_func1=function(gamma_t){
-  tmp.y=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)-(p0)
-  # tmp.y=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)-(1-p0)
-  tmp.y
-}
-
-tmp_func2=function(gamma_t){
-  # tmp.y=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)-(p0)
-  tmp.y=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)-(1-p0)
-  tmp.y
-}
-
-my_hist=function(inp_data,true_value,inp_text){
-  hist(inp_data,nclass=100,main=inp_text,xlab=inp_text)
-  mtext(sprintf('Median : %s',round(median(inp_data),2)),side=3)
-  abline(v=true_value,col=2,lwd=3)
-}
-
+# type='BayesQR'
+# p0=0.1
+# sim_idx=1
 # Simulation start --------------------------------------------------------------------------------
 for(sim_idx in start.idx:end.idx){
   set.seed(sim_idx)
   n=200
-  P=2
   
   # Make data--------------------------------------------------------------------------------
-  
   Mu_x=10
   sigma2=1
   sigma2_xx=1
@@ -67,6 +45,15 @@ for(sim_idx in start.idx:end.idx){
   
   beta=c(1,1)
   alpha=c(1,1)
+  
+  if(type=='BayesQR'){
+    x1i=runif(n=n,min=0,max=10)
+    X=cbind(1,x1i)
+    beta=c(1,2)
+    alpha=c(1,1)
+    ei=rnorm(n=n, mean=0, sd=.6*x1i)
+    beta.true=c(beta[1]+0*qnorm(p0,0,1),beta[2]+0.6*qnorm(p0,0,1))
+  }
   
   #generate w1,w2
   delta1=rnorm(n,0,sd=sqrt(sigma2_11))
@@ -111,12 +98,12 @@ for(sim_idx in start.idx:end.idx){
       beta.true=beta+c(qt(p0,df = 3),0)
     }
     if (type=='locshit'){
-      beta.true=c(beta[1]+qnorm(p0,0,1),beta[2]*qnorm(p0,0,1))
+      beta.true=c(beta[1]+qnorm(p0,0,1),beta[2]+qnorm(p0,0,1))
     }  
     if (type=='MixN'){
       beta.true=beta
     }}
-  
+
   # set default--------------------------------------------------------------------------------
   niter    <- 30000
   nburn    <- 5000
@@ -131,8 +118,8 @@ for(sim_idx in start.idx:end.idx){
   A=(1-2*p0)/(p0*(1-p0));B=2/(p0*(1-p0));
   
   #N for beta
-  pr_mean_beta=rep(0,P)
-  pr_sd_beta=100*diag(P)
+  pr_mean_beta=rep(0,2)
+  pr_sd_beta=100*diag(2)
   
   #IG for sigma
   aaa=0.01
@@ -154,7 +141,7 @@ for(sim_idx in start.idx:end.idx){
   pr_sd_alpha=var_param*diag(2)
   
   # Make Trace ----------------------------------------------------------------------
-  beta_trace=matrix(NA,nrow=nmcmc,ncol=P)
+  beta_trace=matrix(NA,nrow=nmcmc,ncol=2)
   sigma_trace=rep(NA,nmcmc)
   s_trace=matrix(NA,nrow=nmcmc,ncol=n)
   sigma2_xx_trace=rep(NA,nmcmc)
