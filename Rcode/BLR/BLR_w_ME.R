@@ -34,7 +34,8 @@ sim_idx=1
 nmax=500
 is.plot=F
 
-for(sim_idx in 100:nmax){
+# for(sim_idx in 100:nmax){
+for(sim_idx in c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,  34,  35,  36,  37,  39,  40,  42,  44,  46,  47,  48,  50,  54,  61,  65,  66,  73,  74,  75,  76,  77,  78,  79,  81,  84,  86,  89,  90,  92,  94,  95,  96, 100)){
   # Make data--------------------------------------------------------------------------------
   set.seed(sim_idx)
   x1i=runif(n=n,min=0,max=2*Mu_x)
@@ -54,7 +55,7 @@ for(sim_idx in 100:nmax){
     plot(X[,2],y)
   }
   
-  BLR_res=BLR_w_MME(y,W1,W2)
+  BLR_res=BLR_w_MME(y,W1,W2,multiply_c = 20)
   
   X.est=colMeans(BLR_res$X_trace)
   beta.est=colMeans(BLR_res$beta_trace)
@@ -64,6 +65,6 @@ for(sim_idx in 100:nmax){
     plot(X.est,W1);abline(alpha.est)
     plot(X.est,y);abline(beta.est)
   }
-  save(BLR_res, file=sprintf('../debugging/BLR_%s_v2.RData',sim_idx))
+  save(BLR_res, file=sprintf('../debugging/BLR_%s.RData',sim_idx))
 }
 

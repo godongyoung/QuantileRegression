@@ -458,8 +458,9 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3){
   sigma2_22.t=10#runif(1)
   mux.t=rnorm(1,0,sqrt(100))
   X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
-  X.1t=W2
+  # X.1t=W2
   # X.1t=(cbind(1,W1)%*%t(alpha.t) +W2)/2
+  # X.1t=rnorm(n,0,100)
   X.t=cbind(1,X.1t)
   
   BQR_res = mBayesQR(y,X.t,p0)
@@ -1022,7 +1023,7 @@ ALD_w_MME=function(y,W1,W2,p0){
   accept_n=0
   
   X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
-  X.1t=W2
+  # X.1t=W2
   X.t=cbind(1,X.1t)
   
   v.t=s.t*sigma.t
@@ -1132,7 +1133,7 @@ ALD_w_MME=function(y,W1,W2,p0){
   return(res_list)  
 }
 
-BLR_w_MME=function(y,W1,W2){
+BLR_w_MME=function(y,W1,W2,multiply_c=2){
   n=length(y)
   
   # set default--------------------------------------------------------------------------------
@@ -1192,7 +1193,7 @@ BLR_w_MME=function(y,W1,W2){
   
   
   X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
-  X.1t=W2
+  # X.1t=W2
   X.t=cbind(1,X.1t)
   
   tic()

@@ -138,7 +138,7 @@ toc()
 set.seed(sim_idx)
 
 # x1i=runif(n=n,min=0,max=2*Mu_x)
-n=1000
+n=1e4
 x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
 X=cbind(1,x1i)
 
@@ -161,8 +161,8 @@ hist(beta_save[,2],nclass=100);abline(v=beta.true[2],col=2,lwd=3)
 hist(alpha_save[,1],nclass=100);abline(v=alpha[1],col=2,lwd=3)
 hist(alpha_save[,2],nclass=100);abline(v=alpha[2],col=2,lwd=3)
 
-plot(X[,2],y,main='X vs Y, with beta.est');abline(colMedians(beta_save,na.rm=T))
-plot(X[,2],W1,main="X vs W1 with alpha.est");abline(colMedians(alpha_save,na.rm=T))
+plot(X[,2],y,main='X vs Y, with beta.est');abline(colMedians(beta_save,na.rm=T),col=2,lwd=3)
+plot(X[,2],W1,main="X vs W1 with alpha.est");abline(colMedians(alpha_save,na.rm=T),col=2,lwd=3)
 
 
 hist(sigma_save,nclass=100);abline(v=sqrt(sigma2),col=2,lwd=3)
@@ -173,16 +173,56 @@ hist(sigma2_xx_save,nclass=100);abline(v=sigma2_xx,col=2,lwd=3)
 par(mfrow=c(1,1))
 
 # Debugging weired result --------------------------------------------------------------------------------
+sim_idx=1
+sim_idx=which(beta_save[,1]>10)[1]
+
+load(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+X.est=colMeans(ALD_res$X_trace)
+beta.est=colMeans(ALD_res$beta_trace)
+alpha.est=colMeans(ALD_res$alpha_trace)
+X.est=colMeans(ALD_res$X_trace)
+mux.est=mean(ALD_res$mux_trace)
+sigma.est=mean(ALD_res$sigma_trace)
+sigma2_11.est=mean(ALD_res$sigma2_11_trace)
+sigma2_22.est=mean(ALD_res$sigma2_22_trace)
+sigma2_xx.est=mean(ALD_res$sigma2_xx_trace)
+
+n=1000
+set.seed(sim_idx)
+x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
+X=cbind(1,x1i)
+#generate W1,W2
+delta1=rnorm(n,0,sd=sqrt(sigma2_11))
+delta2=rnorm(n,0,sd=sqrt(sigma2_22))
+W1=X%*%alpha+delta1
+W2=X[,2]+delta2
+ei=gen_error(type = type)
+y=(X%*%beta)+ei
+beta.true=gen_true.beta(type = type)
+
 par(mfrow=c(4,2))
 plot(X.est,X[,2],main='X.est Vs X with y=x line');abline(0,1)
 plot(X.est,W1,main='X.est Vs W1 with alpha.est');abline(alpha.est)
 plot(X.est,W2,main='X.est Vs W2 with y=x line');abline(0,1)
 plot(X.est,y,main='X.est Vs Y with beta.est');abline(beta.est)
-hist(ALD_res$sigma2_trace,nclass=100)
+hist(ALD_res$sigma_trace,nclass=100)
 hist(ALD_res$sigma2_11_trace,nclass=100)
 hist(ALD_res$sigma2_22_trace,nclass=100)
 hist(ALD_res$sigma2_xx_trace,nclass=100)
 par(mfrow=c(1,1))
+
+
+par(mfrow=c(4,2))
+ts.plot(ALD_res$beta_trace[,1])
+ts.plot(ALD_res$alpha_trace[,1])
+ts.plot(ALD_res$X_trace[,1])
+ts.plot(ALD_res$sigma_trace)
+ts.plot(ALD_res$sigma2_11_trace)
+ts.plot(ALD_res$sigma2_22_trace)
+ts.plot(ALD_res$sigma2_xx_trace)
+par(mfrow=c(1,1))
+
+
 sigma.est
 sigma2_11.est
 sigma2_22.est
@@ -195,4 +235,3 @@ sigma2_xx.est
 # hist(sigma2_11_save,nclass=100)
 # mean(sigma2_22_save,na.rm = T)
 # mean(sigma2_xx_save,na.rm = T)
-which((beta_save[,1])>10)

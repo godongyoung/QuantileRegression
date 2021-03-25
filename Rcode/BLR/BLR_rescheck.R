@@ -29,7 +29,7 @@ sigma2_11=1
 sigma2_22=1
 
 # Simulation start --------------------------------------------------------------------------------
-sim_idx=1
+sim_idx=500
 nmax=500
 is.plot=F
 
@@ -45,7 +45,7 @@ sigma2_xx_save=rep(NA,nmax)
 sigma2_save=rep(NA,nmax)
 
 for(sim_idx in 1:nmax){
-  load(file=sprintf('../debugging/BLR_%s.RData',sim_idx))
+  load(file=sprintf('../debugging/BLR_%s_v2.RData',sim_idx))
   beta.est=colMeans(BLR_res$beta_trace)
   alpha.est=colMeans(BLR_res$alpha_trace)
   X.est=colMeans(BLR_res$X_trace)
@@ -112,6 +112,35 @@ hist(sigma2_xx_save,nclass=100);abline(v=sigma2_xx,col=2,lwd=3)
 par(mfrow=c(1,1))
 
 # Debugging weired result --------------------------------------------------------------------------------
+sim_idx = which(beta_save[,1]>40)[1]
+# sim_idx = 11
+
+n=1000
+load(file=sprintf('../debugging/BLR_%s.RData',sim_idx))
+beta.est=colMeans(BLR_res$beta_trace)
+alpha.est=colMeans(BLR_res$alpha_trace)
+X.est=colMeans(BLR_res$X_trace)
+mux.est=mean(BLR_res$mux_trace)
+sigma2.est=mean(BLR_res$sigma2_trace)
+sigma2_11.est=mean(BLR_res$sigma2_11_trace)
+sigma2_22.est=mean(BLR_res$sigma2_22_trace)
+sigma2_xx.est=mean(BLR_res$sigma2_xx_trace)
+
+set.seed(sim_idx)
+x1i=runif(n=n,min=0,max=2*Mu_x)
+x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
+X=cbind(1,x1i)
+y=X%*%beta+rnorm(n,0,1)
+X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
+
+#generate W1,W2
+delta1=rnorm(n,0,sd=sqrt(sigma2_11))
+delta2=rnorm(n,0,sd=sqrt(sigma2_22))
+
+W1=X%*%alpha+delta1
+W2=X[,2]+delta2
+
+
 par(mfrow=c(4,2))
 plot(X.est,X[,2],main='X.est Vs X with y=x line');abline(0,1)
 plot(X.est,W1,main='X.est Vs W1 with alpha.est');abline(alpha.est)
@@ -122,15 +151,17 @@ hist(BLR_res$sigma2_11_trace,nclass=100)
 hist(BLR_res$sigma2_22_trace,nclass=100)
 hist(BLR_res$sigma2_xx_trace,nclass=100)
 par(mfrow=c(1,1))
+
+par(mfrow=c(4,2))
+ts.plot(BLR_res$beta_trace[,1])
+ts.plot(BLR_res$alpha_trace[,1])
+ts.plot(BLR_res$X_trace[,1])
+ts.plot(BLR_res$sigma2_trace)
+ts.plot(BLR_res$sigma2_11_trace)
+ts.plot(BLR_res$sigma2_22_trace)
+ts.plot(BLR_res$sigma2_xx_trace)
+par(mfrow=c(1,1))
 sigma2.est
 sigma2_11.est
 sigma2_22.est
 sigma2_xx.est
-# 
-# mean(mux_save,na.rm = T)
-# mean(sigma2_save,na.rm = T)
-# hist(sigma2_save,nclass=100)
-# median(sigma2_11_save,na.rm = T)
-# hist(sigma2_11_save,nclass=100)
-# mean(sigma2_22_save,na.rm = T)
-# mean(sigma2_xx_save,na.rm = T)
