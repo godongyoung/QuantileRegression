@@ -104,7 +104,7 @@ sigma2_xx_save=rep(NA,nmax)
 sigma_save=rep(NA,nmax)
 
 for(sim_idx in 1:nmax){
-  load(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+  load(file=sprintf('../debugging/ALD_%s_%s_%s_W1.RData',type,p0,sim_idx))
   X.est=colMeans(ALD_res$X_trace)
   beta.est=colMeans(ALD_res$beta_trace)
   alpha.est=colMeans(ALD_res$alpha_trace)
@@ -174,9 +174,10 @@ par(mfrow=c(1,1))
 
 # Debugging weired result --------------------------------------------------------------------------------
 sim_idx=1
-sim_idx=which(beta_save[,1]>10)[1]
+condition = which(abs(beta_save[,2])>10)
+sim_idx=condition[3] # 26 & 29 are weired
 
-load(file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+load(file=sprintf('../debugging/ALD_%s_%s_%s_W1.RData',type,p0,sim_idx))
 X.est=colMeans(ALD_res$X_trace)
 beta.est=colMeans(ALD_res$beta_trace)
 alpha.est=colMeans(ALD_res$alpha_trace)

@@ -45,7 +45,7 @@ sigma2_xx_save=rep(NA,nmax)
 sigma2_save=rep(NA,nmax)
 
 for(sim_idx in 1:nmax){
-  load(file=sprintf('../debugging/BLR_%s_v2.RData',sim_idx))
+  load(file=sprintf('../debugging/BLR_%s.RData',sim_idx))
   beta.est=colMeans(BLR_res$beta_trace)
   alpha.est=colMeans(BLR_res$alpha_trace)
   X.est=colMeans(BLR_res$X_trace)
@@ -112,10 +112,13 @@ hist(sigma2_xx_save,nclass=100);abline(v=sigma2_xx,col=2,lwd=3)
 par(mfrow=c(1,1))
 
 # Debugging weired result --------------------------------------------------------------------------------
-sim_idx = which(beta_save[,1]>40)[1]
-# sim_idx = 11
+condition=c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,  34,  35,  36,  37,  39,  40,  42,  44,  46,  47,  48,  50,  54,  61,  65,  66,  73,  74,  75,  76,  77,  78,  79,  81,  84,  86,  89,  90,  92,  94,  95,  96, 100)
+condition=which(beta_save[,1]>10)
+sim_idx = condition[2] # 5,7 are weired!
+# sim_idx = 5
 
 n=1000
+# load(file=sprintf('../debugging/BLR_%s_v2.RData',sim_idx))
 load(file=sprintf('../debugging/BLR_%s.RData',sim_idx))
 beta.est=colMeans(BLR_res$beta_trace)
 alpha.est=colMeans(BLR_res$alpha_trace)
