@@ -457,8 +457,8 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3){
   sigma2_11.t=10#runif(1)
   sigma2_22.t=10#runif(1)
   mux.t=rnorm(1,0,sqrt(100))
-  X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
-  # X.1t=W2
+  # X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
+  X.1t=W2
   # X.1t=(cbind(1,W1)%*%t(alpha.t) +W2)/2
   # X.1t=rnorm(n,0,100)
   X.t=cbind(1,X.1t)
@@ -743,8 +743,8 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
   sigma2_xx.t=10#runif(1)
   sigma2_22.t=10#runif(1)
   mux.t=rnorm(1,0,sqrt(100))
-  # X.1t=W2
-  X.1t=rtruncnorm(n = n,a = 0,b = 10,mean=5,sd=2)
+  X.1t=W2
+  # X.1t=rtruncnorm(n = n,a = 0,b = 10,mean=5,sd=2)
   X.t=cbind(1,X.1t)
   
   BQR_res = mBayesQR(y,X.t,p0)
@@ -1022,8 +1022,8 @@ ALD_w_MME=function(y,W1,W2,p0){
   
   accept_n=0
   
-  X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
-  # X.1t=W2
+  # X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
+  X.1t=W2
   X.t=cbind(1,X.1t)
   
   v.t=s.t*sigma.t
@@ -1192,8 +1192,8 @@ BLR_w_MME=function(y,W1,W2,multiply_c=2){
   accept_n=0
   
   
-  X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
-  # X.1t=W2
+  # X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
+  X.1t=W2
   X.t=cbind(1,X.1t)
   
   tic()
@@ -1339,3 +1339,4 @@ EM_w_MME = function(y,W1,W2,if_print=F){
   # return(rst)
   return(theta)
 }
+

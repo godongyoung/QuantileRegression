@@ -15,6 +15,25 @@ library(bayesQR)
 library(quantreg)
 library(MASS)
 
+# Function --------------------------------------------------------------------------------
+smooth.y=function(knots,g.tau,xout,version=1){
+  if(version==1){
+    mspline=spline(x = knots,y = g.tau,xout = xout)
+    y.est=mspline$y
+  }
+  if(version==2){
+    msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
+    mspline=predict(msmooth.spline,xout)
+    y.est=mspline$y
+  }
+  if(version==3){
+    g.tau=as.numeric(g.tau)
+    fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+    y.est=predict(fit.ns, data.frame(knots=xout))
+  }
+  return(y.est)
+}
+N=30
 
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
@@ -31,8 +50,8 @@ sim_idx=4
 p0=0.25
 nmax=500
 is.plot=F
-
-
+is.cal_quantile=T
+if.short=F
 
 
 # Simulation check --------------------------------------------------------------------------------
@@ -46,22 +65,53 @@ sigma2_11_save=rep(NA,nmax)
 sigma2_22_save=rep(NA,nmax)
 sigma2_xx_save=rep(NA,nmax)
 accept_g_save = rep(NA,nmax)
+y.quantile_save = rep(NA,nmax)
+y.est.quantile_save = rep(NA,nmax)
+bias.quantile_save = rep(NA,nmax)
 
-load(file=sprintf('../debugging/NQR_old_%s_%s.RData',p0,sim_idx))
+y.est.quantile_save2 = rep(NA,nmax)
+
+load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
 tau.i=NQR_res$Knots
 tau.i=seq(from = 0,to = 2*Mu_x,length.out = 30)
 
 
 
 for(sim_idx in 1:nmax){
-  load(file=sprintf('../debugging/NQR_old_%s_%s.RData',p0,sim_idx))
-  alpha.est=colMeans(NQR_res$alpha_trace)
-  g.est=colMeans(NQR_res$g_trace)
-  X.est=colMeans(NQR_res$X_trace)
-  mux.est=mean(NQR_res$mux_trace)
-  sigma2_11.est=mean(NQR_res$sigma2_11_trace)
-  sigma2_22.est=mean(NQR_res$sigma2_22_trace)
-  sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
+  # Make data--------------------------------------------------------------------------------
+  set.seed(sim_idx)
+  x1i=runif(n=n,min=0,max=2*Mu_x)
+  x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
+  X=cbind(1,x1i)
+  X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
+  y=2+sin(x1i)+rnorm(n,0,0.1)
+  delta1=rnorm(n,0,sd=sqrt(sigma2_11))
+  delta2=rnorm(n,0,sd=sqrt(sigma2_22))
+  W1=X%*%alpha+delta1
+  W2=X[,2]+delta2
+  
+  # Load MCMC result--------------------------------------------------------------------------------
+  load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
+  if(!if.short){
+    alpha.est=colMeans(NQR_res$alpha_trace)
+    g.est=colMeans(NQR_res$g_trace)
+    X.est=colMeans(NQR_res$X_trace)
+    mux.est=mean(NQR_res$mux_trace)
+    sigma2_11.est=mean(NQR_res$sigma2_11_trace)
+    sigma2_22.est=mean(NQR_res$sigma2_22_trace)
+    sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
+    Knots = NQR_res$Knots
+  }
+  if(if.short){
+    alpha.est = NQR_res_short$alpha.est
+    g.est = NQR_res_short$g.est
+    X.est = NQR_res_short$X.est
+    mux.est = NQR_res_short$mux.est
+    sigma2_11.est = NQR_res_short$sigma2_11.est
+    sigma2_22.est = NQR_res_short$sigma2_22.est
+    sigma2_xx.est = NQR_res_short$sigma2_xx.est
+    Knots = NQR_res_short$Knots
+  }
   
   alpha_save[sim_idx,]=alpha.est
   g_save[sim_idx,]=g.est
@@ -72,24 +122,21 @@ for(sim_idx in 1:nmax){
   sigma2_xx_save[sim_idx]=sigma2_xx.est
   accept_g_save[sim_idx]=NQR_res$g_accept_ratio
   
+  if(is.cal_quantile){
+    ordered_idx=order(X[,2])
+    X=X[ordered_idx,]
+    y=y[ordered_idx]
+    
+    y.est=smooth.y(Knots, g.est, X[,2], version=3)
+    y.est.quantile_save[sim_idx] = quantile(y.est,p0)
+    y.est.quantile_save2[sim_idx] = mean(y.est) #quantile(y.est,0.5)
+    y.quantile_save[sim_idx] = quantile(y,p0)
+    bias.quantile_save[sim_idx] = quantile(y-y.est,p0)
+    # plot(X[,2],y)
+    # points(X[,2],y.est,type='l')    
+  }
+
   if(is.plot){
-    # Make data--------------------------------------------------------------------------------
-    set.seed(sim_idx)
-    
-    # x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sigma2_xx)
-    x1i=runif(n=n,min=0,max=2*Mu_x)
-    x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
-    X=cbind(1,x1i)
-    X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-    y=2+sin(x1i)+rnorm(n,0,0.1)
-    
-    #generate W1,W2
-    delta1=rnorm(n,0,sd=sqrt(sigma2_11))
-    delta2=rnorm(n,0,sd=sqrt(sigma2_22))
-    
-    W1=X%*%alpha+delta1
-    W2=X[,2]+delta2
-    
     par(mfrow=c(2,2))
     plot(X.est,X[,2]);abline(0,1)
     plot(X.est,W1);abline(alpha.est)
@@ -109,7 +156,13 @@ for(sim_idx in 1:nmax){
 }
 toc()
 
-
+# plot(X[,2],y)
+# points(X[,2],y.est,type='l')
+# boxplot(y,y.est);abline(h=mean(y.quantile_save[-nconverge_idx]))
+# boxplot(y.est.quantile_save[-nconverge_idx]);abline(h=mean(y.quantile_save[-nconverge_idx]))
+# boxplot(y.est.quantile_save2[-nconverge_idx]);abline(h=mean(y.quantile_save[-nconverge_idx]))
+# hist(y.est.quantile_save[-nconverge_idx],nclass=100);abline(v=mean(y.quantile_save[-nconverge_idx]))
+# boxplot(bias.quantile_save[-nconverge_idx]);abline(h=0)
 # Make larger data for Ground Truth--------------------------------------------------------------------------------
 set.seed(sim_idx)
 n=1e4
@@ -164,7 +217,7 @@ for(idx in 1:length(condition)){
   # sim_idx=idx
   if(sim_idx %in% nconverge_idx){next}
   
-  load(file=sprintf('../debugging/NQR_old_%s_%s.RData',p0,sim_idx))
+  load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
   alpha.est=colMeans(NQR_res$alpha_trace)
   g.est=colMeans(NQR_res$g_trace)
   X.est=colMeans(NQR_res$X_trace)

@@ -265,7 +265,7 @@ mQR=function(y,X,p0){
 
 
 
-NQR=function(y,X,p0, inp.version=3, multiply_c=1){
+NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1){
     # inp.version=3 # version 1 for quick & dirty solution
     
     # Function --------------------------------------------------------------------------------
@@ -320,7 +320,8 @@ NQR=function(y,X,p0, inp.version=3, multiply_c=1){
     nmcmc=(niter-nburn)/nthin
 
     N=30
-    tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
+    # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
+    tau.i=seq(from = inp.min,to = inp.max,length.out = N)
     
     hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
     # Make Q matrix
@@ -400,6 +401,7 @@ NQR=function(y,X,p0, inp.version=3, multiply_c=1){
         if(iter%%nprint==1){cat(iter,'th iter is going\n')}
         # Sample g-----------------------------------------------------------------
         g.star = rmvnorm(n = 1,mu = g.t,sigma = jump_g)
+        # mvrnorm(1,g.t,Sigma = ginv(K)/0.1)
         log_accept.r = log.likeli.g(g.star,lambda.t) - log.likeli.g(g.t,lambda.t)
         
         log.u = log(runif(1))

@@ -14,6 +14,14 @@ library(Brq)
 library(bayesQR)
 library(quantreg)
 
+
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+start.idx = as.numeric(args[1])
+end.idx = as.numeric(args[2])
+print(sprintf("start:%s / end:%s",start.idx,end.idx))
+
+
 ########
 # Define True parameter--------------------------------------------------------------------------------
 if.short = T
@@ -28,10 +36,11 @@ sigma2_11=1
 sigma2_22=1
 
 # Simulation start --------------------------------------------------------------------------------
-p0=0.25
 sim_idx=1
 nmax=500
-for(sim_idx in 1:nmax){
+p0=0.25
+
+for(sim_idx in start.idx:end.idx){
   set.seed(sim_idx)
   # Make data--------------------------------------------------------------------------------
   
@@ -75,7 +84,7 @@ for(sim_idx in 1:nmax){
     
     # fit NQR wo MME--------------------------------------------------------------------------------
     if(if.NQR_wo_ME){
-      NQR_wo_ME_res=NQR(y,X,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 1,multiply_c = 3)
+      NQR_wo_ME_res=NQR(y,X,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 3,multiply_c = 3)
       NQR_res_woME_short = list() 
       NQR_res_woME_short[['g.est']] = colMeans(NQR_wo_ME_res$g_trace)
       NQR_res_woME_short[['lambda.est']] = mean(NQR_wo_ME_res$lambda_trace)

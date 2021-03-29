@@ -1,13 +1,9 @@
 rm(list = ls())
-# tryCatch( # set wording directory to current source file folder
-#   {setwd(getSrcDirectory()[1])}
-#   ,error=function(e){setwd(dirname(rstudioapi::getActiveDocumentContext()$path))}
-# )
-# setwd('C:/Users/admin/Documents/dongyoung/Rcode')
-# setwd('D:/dy_result/QuantileRegression/Rcode')
+
 setwd('/Users/godongyoung/Dropbox/MyFiles/Research/quantile_regression/Rcode')
-source('fn_w_ME.R')
+# setwd('D:/dy_result/QuantileRegression/Rcode')
 source('fn_wo_ME.R')
+source('fn_w_ME.R')
 # library(mvtnorm)
 library(MCMCpack)
 library(truncnorm)    
@@ -15,6 +11,17 @@ library(nleqslv)
 library(tictoc)
 library(GIGrvg)
 library(Rfast)
+library(Brq)
+library(bayesQR)
+library(quantreg)
+
+
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+start.idx = as.numeric(args[1])
+end.idx = as.numeric(args[2])
+print(sprintf("start:%s / end:%s",start.idx,end.idx))
+
 
 # Function --------------------------------------------------------------------------------
 gen_error=function(type){
@@ -69,6 +76,7 @@ gen_true.beta=function(type){
 }
 
 # Define true parameter--------------------------------------------------------------------------------
+if.short = T
 type='BayesQR'
 p0=0.25
 n=1000
@@ -82,8 +90,6 @@ alpha=c(4,5)
 if(type=='BayesQR'){
   locshit_c=0.6
 }
-
-
 
 
 # Simulation start --------------------------------------------------------------------------------
@@ -116,17 +122,33 @@ for(sim_idx in 1:nmax){
     abline(beta.true)
   }
   
-  ALD_res=ALD_w_MME(y,W1,W2,p0)
+  ALD_res_short=ALD_w_MME(y,W1,W2,p0)
   
-  X.est=colMeans(ALD_res$X_trace)
-  beta.est=colMeans(ALD_res$beta_trace)
-  alpha.est=colMeans(ALD_res$alpha_trace)
+  if(if.short){
+    ALD_res_short = list() 
+    ALD_res_short[['beta.est']] = colMeans(ALD_res$beta_trace)
+    ALD_res_short[['sigma.est']] = mean(ALD_res$sigma_trace)
+    ALD_res_short[['sigma2_22.est']] = mean(ALD_res$sigma2_22_trace)
+    ALD_res_short[['sigma2_11.est']] = mean(ALD_res$sigma2_11_trace)
+    ALD_res_short[['sigma2_xx.est']] = mean(ALD_res$sigma2_xx_trace)
+    ALD_res_short[['mux.est']] = mean(ALD_res$mux_trace)
+    ALD_res_short[['alpha.est']] = colMeans(ALD_res$alpha_trace)
+    ALD_res_short[['X.est']] = colMeans(ALD_res$X_trace)
+    
+    save(ALD_res_short, file=sprintf('../debugging/ALD_short_%s_%s_%s.RData',type,p0,sim_idx))
+  }
+  else{
+    save(ALD_res, file=sprintf('../debugging/ALD_%s_%s_%s.RData',type,p0,sim_idx))
+  }
   
   if(is.plot){
+    X.est=colMeans(ALD_res_short$X_trace)
+    beta.est=colMeans(ALD_res_short$beta_trace)
+    alpha.est=colMeans(ALD_res_short$alpha_trace)
+    
     plot(X.est,X[,2]);abline(0,1)
     plot(X.est,W1);abline(alpha.est)
     plot(X.est,y);abline(beta.est)
   }
-  save(ALD_res, file=sprintf('../debugging/ALD_%s_%s_%s_W1.RData',type,p0,sim_idx))
 }
 
