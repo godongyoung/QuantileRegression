@@ -91,6 +91,7 @@ for(sim_idx in start.idx:end.idx){
       NQR_res_woME_short[['g_accept_ratio']] =NQR_wo_ME_res$g_accept_ratio
       NQR_res_woME_short[['l_accept_ratio']] = NQR_wo_ME_res$l_accept_ratio
       NQR_res_woME_short[['Knots']] = NQR_wo_ME_res$Knots
+      save(NQR_res_woME_short, file=sprintf('../debugging/NQR_woME_short_%s_%s.RData',p0,sim_idx)) #old is W1 version!
     }
   
   }
