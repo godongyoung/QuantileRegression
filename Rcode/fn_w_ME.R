@@ -1285,3 +1285,57 @@ BLR_w_MME=function(y,W1,W2,multiply_c=2){
   return(res_list)
 }
 
+EM_w_MME = function(y,W1,W2,if_print=F){
+
+  
+  dat=data.frame(y,W2,W1) 
+  vdat=var(dat) 
+  eta.hat=c(colMeans(dat),diag(vdat),vdat[1,2:3],vdat[2,3])
+  
+  theta=rep(1,9) 
+  eta.theta=vector(length=9) 
+  A=matrix(0,9,9)
+  
+  iter=0 
+  repeat{
+    iter=iter+1 
+    theta0=theta
+    
+    eta.theta[1]=theta[1]+theta[2]*theta[5]
+    eta.theta[2]=theta[5]
+    eta.theta[3]=theta[3]+theta[4]*theta[5]
+    eta.theta[4]=theta[2]^2*theta[6]+theta[7]
+    eta.theta[5]=theta[6]+theta[8]
+    eta.theta[6]=theta[4]^2*theta[6]+theta[9]
+    eta.theta[7]=theta[2]*theta[6]
+    eta.theta[8]=theta[2]*theta[4]*theta[6]
+    eta.theta[9]=theta[4]*theta[6]
+    
+    Z=eta.hat-eta.theta
+    A[1,c(1,2,5)]=c(1,theta[5],theta[2])
+    A[2,5]=1
+    A[3,3:5]=c(1,theta[5],theta[4])
+    A[4,c(2,6,7)]=c(2*theta[2]*theta[6],theta[2]^2,1)
+    A[5,c(6,8)]=c(1,1)
+    A[6,c(4,6,9)]=c(2*theta[4]*theta[6],theta[4]^2,1)
+    A[7,c(2,6)]=c(theta[6],theta[2])
+    A[8,c(2,4,6)]=c(theta[4]*theta[6],theta[2]*theta[6],theta[2]*theta[4])
+    A[9,c(4,6)]=c(theta[6],theta[4])
+    
+    theta=theta0+solve(t(A)%*%A)%*%t(A)%*%Z
+    dif=sum((theta-theta0)^2)
+    
+    if(dif<1e-6){break}
+  }
+  # rst[i,]=theta
+  # 
+  # if(if_print){
+  #   if(i%%500==0){
+  #     cat("__________MonteCarlo Mean and SE___","\n")
+  #     print(round(apply(rst[1:i,],2,mean),2))
+  #     print(round(apply(rst[1:i,],2,sd),2))
+  #   }
+  # }
+  # return(rst)
+  return(theta)
+}

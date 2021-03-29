@@ -18,7 +18,7 @@ library(MASS)
 
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
-multiply_c=2
+multiply_c=20
 beta=c(3,5)
 alpha=c(4,3)
 
@@ -113,13 +113,15 @@ par(mfrow=c(1,1))
 
 # Debugging weired result --------------------------------------------------------------------------------
 condition=c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,  34,  35,  36,  37,  39,  40,  42,  44,  46,  47,  48,  50,  54,  61,  65,  66,  73,  74,  75,  76,  77,  78,  79,  81,  84,  86,  89,  90,  92,  94,  95,  96, 100)
-condition=which(beta_save[,1]>10)
-sim_idx = condition[2] # 5,7 are weired!
-# sim_idx = 5
+# condition=c(1,  4,  7,  8, 10, 11, 14, 16) # scaled version
+# condition=which(abs(beta_save[,2])>10)
+sim_idx = condition[2] # 5,7 are weired! # 7 is weired for scaled version
+# sim_idx = 22
 
 n=1000
 # load(file=sprintf('../debugging/BLR_%s_v2.RData',sim_idx))
 load(file=sprintf('../debugging/BLR_%s.RData',sim_idx))
+# BLR_res=res_list
 beta.est=colMeans(BLR_res$beta_trace)
 alpha.est=colMeans(BLR_res$alpha_trace)
 X.est=colMeans(BLR_res$X_trace)
@@ -143,6 +145,11 @@ delta2=rnorm(n,0,sd=sqrt(sigma2_22))
 W1=X%*%alpha+delta1
 W2=X[,2]+delta2
 
+# # If scale --------------
+# X=scale(X,center = T,scale = F)
+# W1=scale(W1,center = T,scale = F)
+# W2=scale(W2,center = T,scale = F)
+# # If scale --------------
 
 par(mfrow=c(4,2))
 plot(X.est,X[,2],main='X.est Vs X with y=x line');abline(0,1)
@@ -168,3 +175,15 @@ sigma2.est
 sigma2_11.est
 sigma2_22.est
 sigma2_xx.est
+
+
+#  # If you want to continue running from the result of the loaded chain
+# beta.t=BLR_res$beta_trace[5000,]
+# alpha.t=matrix(BLR_res$alpha_trace[5000,],nrow=1)
+# sigma2.t=BLR_res$sigma2_trace[5000]
+# sigma2_xx.t=BLR_res$sigma2_xx_trace[5000]
+# sigma2_11.t=BLR_res$sigma2_11_trace[5000]
+# sigma2_22.t=BLR_res$sigma2_22_trace[5000]
+# mux.t=BLR_res$mux_trace[5000]
+# X.1t=BLR_res$X_trace[5000,]
+# X.t=cbind(1,X.1t)

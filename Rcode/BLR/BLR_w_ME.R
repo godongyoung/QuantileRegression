@@ -34,8 +34,9 @@ sim_idx=1
 nmax=500
 is.plot=F
 
-# for(sim_idx in 100:nmax){
-for(sim_idx in c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,  34,  35,  36,  37,  39,  40,  42,  44,  46,  47,  48,  50,  54,  61,  65,  66,  73,  74,  75,  76,  77,  78,  79,  81,  84,  86,  89,  90,  92,  94,  95,  96, 100)){
+# for(sim_idx in 1:nmax){
+for(sim_idx in c(1,  4,  7,  8, 10, 11, 14, 16) ){
+# for(sim_idx in c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,  34,  35,  36,  37,  39,  40,  42,  44,  46,  47,  48,  50,  54,  61,  65,  66,  73,  74,  75,  76,  77,  78,  79,  81,  84,  86,  89,  90,  92,  94,  95,  96, 100)){
   # Make data--------------------------------------------------------------------------------
   set.seed(sim_idx)
   x1i=runif(n=n,min=0,max=2*Mu_x)
@@ -51,6 +52,12 @@ for(sim_idx in c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,
   W1=X%*%alpha+delta1
   W2=X[,2]+delta2
   
+  # If scale --------------
+  X=scale(X,center = T,scale = F)
+  W1=scale(W1,center = T,scale = F)
+  W2=scale(W2,center = T,scale = F)
+  # If scale --------------
+  
   if(is.plot){
     plot(X[,2],y)
   }
@@ -65,6 +72,6 @@ for(sim_idx in c( 1,   5,   7,  11,  17,  18,  19,  21,  24,  25,  26,  32,  33,
     plot(X.est,W1);abline(alpha.est)
     plot(X.est,y);abline(beta.est)
   }
-  save(BLR_res, file=sprintf('../debugging/BLR_%s.RData',sim_idx))
+  save(BLR_res, file=sprintf('../debugging/BLR_%s_scale.RData',sim_idx))
 }
 
