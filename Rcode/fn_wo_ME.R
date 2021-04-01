@@ -436,6 +436,7 @@ NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1){
     res_list[['g_accept_ratio']]=accept_g/niter
     res_list[['l_accept_ratio']]=accept_l/niter
     res_list[['Knots']]=tau.i
+    res_list[['inp.version']]=inp.version
     return(res_list)
 }
 

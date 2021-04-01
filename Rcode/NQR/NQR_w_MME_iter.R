@@ -38,18 +38,19 @@ sigma2_22=1
 # Simulation start --------------------------------------------------------------------------------
 sim_idx=1
 nmax=500
-p0=0.25
+p0=0.1
 
 for(sim_idx in start.idx:end.idx){
   set.seed(sim_idx)
   # Make data--------------------------------------------------------------------------------
   
-  # x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sigma2_xx)
-  x1i=runif(n=n,min=0,max=2*Mu_x)
-  x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
+  x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sqrt(sigma2_xx))
+  # x1i=runif(n=n,min=0,max=2*Mu_x)
+  # x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
   X=cbind(1,x1i)
   X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-  y=2+sin(x1i)+rnorm(n,0,0.1)
+  inp.sd=1
+  y=2+sin(x1i)+rnorm(n,0,inp.sd)    
   
   #generate W1,W2
   delta1=rnorm(n,0,sd=sqrt(sigma2_11))
@@ -61,7 +62,7 @@ for(sim_idx in start.idx:end.idx){
   for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
     
     # fit NQR w MME--------------------------------------------------------------------------------
-    NQR_res=NQR_w_MME(y,W1,W2,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 3,multiply_c = 3)
+    NQR_res=NQR_w_MME(y,W1,W2,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 1,multiply_c = 3)
     if(if.short){
       NQR_res_short = list() 
       NQR_res_short[['g.est']] = colMeans(NQR_res$g_trace)
@@ -76,7 +77,8 @@ for(sim_idx in start.idx:end.idx){
       NQR_res_short[['sigma2_11.est']] = mean(NQR_res$sigma2_11_trace)
       NQR_res_short[['sigma2_xx.est']] = mean(NQR_res$sigma2_xx_trace)
       NQR_res_short[['Knots']] = NQR_res$Knots
-      save(NQR_res_short, file=sprintf('../debugging/NQR_short_%s_%s.RData',p0,sim_idx)) #old is W1 version!
+      NQR_res_short[['inp.version']]=NQR_res$inp.version
+      save(NQR_res_short, file=sprintf('../debugging/NQR_short_%s_%s_sd%s.RData',p0,sim_idx,inp.sd)) #old is W1 version!
     }
     else{
       save(NQR_res, file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx)) #old is W1 version!  
@@ -84,14 +86,15 @@ for(sim_idx in start.idx:end.idx){
     
     # fit NQR wo MME--------------------------------------------------------------------------------
     if(if.NQR_wo_ME){
-      NQR_wo_ME_res=NQR(y,X,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 3,multiply_c = 3)
+      NQR_wo_ME_res=NQR(y,X,p0,inp.min = 0,inp.max = 2*Mu_x,inp.version = 1,multiply_c = 3)
       NQR_res_woME_short = list() 
       NQR_res_woME_short[['g.est']] = colMeans(NQR_wo_ME_res$g_trace)
       NQR_res_woME_short[['lambda.est']] = mean(NQR_wo_ME_res$lambda_trace)
       NQR_res_woME_short[['g_accept_ratio']] =NQR_wo_ME_res$g_accept_ratio
       NQR_res_woME_short[['l_accept_ratio']] = NQR_wo_ME_res$l_accept_ratio
       NQR_res_woME_short[['Knots']] = NQR_wo_ME_res$Knots
-      save(NQR_res_woME_short, file=sprintf('../debugging/NQR_woME_short_%s_%s.RData',p0,sim_idx)) #old is W1 version!
+      NQR_res_woME_short[['inp.version']]=NQR_wo_ME_res$inp.version
+      save(NQR_res_woME_short, file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s.RData',p0,sim_idx,inp.sd)) #old is W1 version!
     }
   
   }

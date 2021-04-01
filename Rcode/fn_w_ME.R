@@ -632,6 +632,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3){
   res_list[['sigma2_11_trace']]=sigma2_11_trace
   res_list[['sigma2_xx_trace']]=sigma2_xx_trace
   res_list[['Knots']]=tau.i
+  res_list[['inp.version']]=inp.version
   return(res_list)
 }
 
