@@ -344,7 +344,7 @@ GAL_w_SME_nalpha=function(y,W1,p0){
   
   return(res_list)
 }
-NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3){
+NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30){
   # Function --------------------------------------------------------------------------------
   qloss=function(u,p0){
     return (u*(p0-(u<0)))
@@ -415,7 +415,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3){
   
   
   n = length(y)
-  N=30
+  N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
   tau.i=seq(from = inp.min,to = inp.max,length.out = N)
   

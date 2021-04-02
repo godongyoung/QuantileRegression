@@ -34,16 +34,16 @@ smooth.y=function(knots,g.tau,xout,version=1){
   return(y.est)
 }
 
-
+inp.sd=1
 save_data = g_save[-nconverge_idx,]
 type='wo'
 m.boxplot=function(save_data,p0,type){
-  y.p0=2+sin(Knots)+qnorm(p = p0,mean = 0,sd = 0.1)
+  y.p0=2+sin(Knots)+qnorm(p = p0,mean = 0,sd = inp.sd)
   
   colnames(save_data)=Knots
   ds=cbind(rep(Knots,each=dim(save_data)[1]),as.numeric(save_data))
   colnames(ds)=c('Knots','value')
-  boxplot(value~Knots, data=ds,ylim=c(0,4),main=sprintf('%s\'s Box plot of %s',type,p0),names = round(Knots,1)) 
+  boxplot(value~Knots, data=ds,ylim=c(-1,5),main=sprintf('%s\'s Box plot of %s',type,p0),names = round(Knots,1)) 
   points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
 }
 
@@ -125,7 +125,8 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
 #Data type test end#########################################################################################
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
 length(p0_list)
-
+p0=0.1
+sim_idx=1
 par(mfrow=c(length(p0_list),1))
 for(p0 in p0_list){
   tic()
@@ -145,7 +146,7 @@ for(p0 in p0_list){
           Knots = NQR_res$Knots
         }
           if(if.short){
-            load(file=sprintf('../debugging/NQR_short_%s_%s.RData',p0,sim_idx)) 
+            load(file=sprintf('../debugging/NQR_short_%s_%s_sd1.RData',p0,sim_idx)) 
             alpha.est = NQR_res_short$alpha.est
             g.est = NQR_res_short$g.est
             X.est = NQR_res_short$X.est
@@ -157,7 +158,7 @@ for(p0 in p0_list){
           }}
         
         if(if.NQR_wo_ME){
-          load(file=sprintf('../debugging/NQR_woME_short_%s_%s.RData',p0,sim_idx)) 
+          load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd1.RData',p0,sim_idx)) 
           g.est_woME = NQR_res_woME_short$g.est 
           
           stopifnot( sum(Knots!=NQR_res_woME_short$Knots)==0 )
@@ -193,19 +194,19 @@ for(p0 in p0_list){
           # 
         }
       },
-      error = function(e) cat(sim_idx,'is not done yet. \n'))
+      error = function(e) cat(sim_idx,'of',p0,'is not done yet. \n'))
   }
   toc()
   
   
-  # nconverge_idx=which(accept_g_woME_save<0.1)
-  # {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
-  # else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
+  nconverge_idx=which(accept_g_woME_save<0.1)
+  {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
+  else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
   
   
-  nconverge_idx=which(accept_g_save<0.1)
-  {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME')}
-    else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME')}}
+  # nconverge_idx=which(accept_g_save<0.1)
+  # {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME')}
+  #   else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME')}}
   
 }
 par(mfrow=c(1,1))
@@ -292,7 +293,8 @@ for(idx in 1:length(condition)){
   x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
   X=cbind(1,x1i)
   X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-  y=2+sin(x1i)+rnorm(n,0,0.1)
+  inp.sd=1
+  y=2+sin(x1i)+rnorm(n,0,inp.sd)
   
   #generate W1,W2
   delta1=rnorm(n,0,sd=sqrt(sigma2_11))

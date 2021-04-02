@@ -265,7 +265,7 @@ mQR=function(y,X,p0){
 
 
 
-NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1){
+NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1,N.Knots=30){
     # inp.version=3 # version 1 for quick & dirty solution
     
     # Function --------------------------------------------------------------------------------
@@ -319,7 +319,7 @@ NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1){
     nprint   <- 10000*multiply_c
     nmcmc=(niter-nburn)/nthin
 
-    N=30
+    N=N.Knots
     # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
     tau.i=seq(from = inp.min,to = inp.max,length.out = N)
     
