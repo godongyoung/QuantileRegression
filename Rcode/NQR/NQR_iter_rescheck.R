@@ -34,21 +34,18 @@ smooth.y=function(knots,g.tau,xout,version=1){
   return(y.est)
 }
 
-inp.sd=1
-save_data = g_save[-nconverge_idx,]
-type='wo'
 m.boxplot=function(save_data,p0,type){
   y.p0=2+sin(Knots)+qnorm(p = p0,mean = 0,sd = inp.sd)
   
   colnames(save_data)=Knots
   ds=cbind(rep(Knots,each=dim(save_data)[1]),as.numeric(save_data))
   colnames(ds)=c('Knots','value')
-  boxplot(value~Knots, data=ds,ylim=c(-1,5),main=sprintf('%s\'s Box plot of %s',type,p0),names = round(Knots,1)) 
+  boxplot(value~Knots, data=ds,ylim=c(-1,5),main=sprintf('%s\'s Box plot of %s with Knots %s',type,p0,inp.N.Knots),names = round(Knots,1)) 
   points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
 }
 
 
-N=30
+
 
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
@@ -68,13 +65,17 @@ is.plot=F
 is.cal_quantile=F
 if.short = T
 if.NQR_wo_ME = T
+inp.sd = 1
+inp.N.Knots = 30
+inp.mul = 6
+N = inp.N.Knots
 
 
 # Simulation check --------------------------------------------------------------------------------
 
 
 alpha_save = matrix(NA,ncol=2,nrow=nmax)
-g_save=matrix(NA,ncol=30,nrow=nmax)
+g_save=matrix(NA,ncol=inp.N.Knots,nrow=nmax)
 X_save=matrix(NA,ncol=n,nrow=nmax)
 mux_save=rep(NA,nmax)
 sigma2_11_save=rep(NA,nmax)
@@ -84,44 +85,43 @@ accept_g_save = rep(NA,nmax)
 
 
 accept_g_woME_save = rep(NA,nmax)
-g_woME_save=matrix(NA,ncol=30,nrow=nmax)
+g_woME_save=matrix(NA,ncol=inp.N.Knots,nrow=nmax)
 
 load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
 Knots=NQR_res$Knots
-Knots=seq(from = 0.1,to = 2*Mu_x,length.out = 30)
+Knots=seq(from = 0.1,to = 2*Mu_x,length.out = inp.N.Knots)
 
 
 #Data type test start #########################################################################################
-set.seed(20210401)
-n=1e4
-x1i=runif(n=n,min=0,max=2*Mu_x)
-x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
-x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sqrt(sigma2_xx))
-X=cbind(1,x1i)
-X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-
-inp.sd=1
-y=2+sin(x1i)+rnorm(n,0,inp.sd)
-plot(x1i,y,xlim=c(0,10))
-p0=0.25
-for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
-  y.p0=2+sin(Knots)+qnorm(p = p0,mean = 0,sd = inp.sd)
-  points(Knots,y.p0,type='l',lwd=3,col=2)
-}
-
-
-
-inp.sd=1
-y=2+3*log(x1i)+rnorm(n,0,x1i*inp.sd)
-plot(x1i,y,xlim=c(0,10))
-p0=0.25
-for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
-  y.p0=2+3*log(Knots)+Knots*qnorm(p = p0,mean = 0,sd = inp.sd)
-  points(Knots,y.p0,type='l',lwd=3,col=2)
-  
-  points(8,quantile(y[(7<x1i)&(x1i<9)],p0),col=3,lwd=5)
-}
-
+# set.seed(20210401)
+# n=1e4
+# x1i=runif(n=n,min=0,max=2*Mu_x)
+# x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
+# x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sqrt(sigma2_xx))
+# X=cbind(1,x1i)
+# X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
+# 
+# inp.sd=1
+# y=2+sin(x1i)+rnorm(n,0,inp.sd)
+# plot(x1i,y,xlim=c(0,10))
+# p0=0.25
+# for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
+#   y.p0=2+sin(Knots)+qnorm(p = p0,mean = 0,sd = inp.sd)
+#   points(Knots,y.p0,type='l',lwd=3,col=2)
+# }
+# 
+# 
+# 
+# inp.sd=1
+# y=2+3*log(x1i)+rnorm(n,0,x1i*inp.sd)
+# plot(x1i,y,xlim=c(0,10))
+# p0=0.25
+# for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
+#   y.p0=2+3*log(Knots)+Knots*qnorm(p = p0,mean = 0,sd = inp.sd)
+#   points(Knots,y.p0,type='l',lwd=3,col=2)
+#   
+#   points(8,quantile(y[(7<x1i)&(x1i<9)],p0),col=3,lwd=5)
+# }
 #Data type test end#########################################################################################
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
 length(p0_list)
@@ -134,7 +134,8 @@ for(p0 in p0_list){
     tryCatch(
       {
         # Load MCMC result--------------------------------------------------------------------------------
-        {if(!if.short){
+        {
+          if(!if.short){
           load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx)) # this is done by inp_version=1
           alpha.est=colMeans(NQR_res$alpha_trace)
           g.est=colMeans(NQR_res$g_trace)
@@ -146,7 +147,16 @@ for(p0 in p0_list){
           Knots = NQR_res$Knots
         }
           if(if.short){
-            load(file=sprintf('../debugging/NQR_short_%s_%s_sd1.RData',p0,sim_idx)) 
+            # Change of N.knots 
+            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s.RData',p0,sim_idx,inp.sd,inp.N.Knots)) 
+            
+            # Change distribution to Xunif
+            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul)) # it was inp.mul = 3
+            load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%sXunif.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+            
+            # Change X domain to X shift
+            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift))
+            
             alpha.est = NQR_res_short$alpha.est
             g.est = NQR_res_short$g.est
             X.est = NQR_res_short$X.est
@@ -155,10 +165,20 @@ for(p0 in p0_list){
             sigma2_22.est = NQR_res_short$sigma2_22.est
             sigma2_xx.est = NQR_res_short$sigma2_xx.est
             Knots = NQR_res_short$Knots
+            accept_g_save[sim_idx]=NQR_res_short$g_accept_ratio
           }}
         
         if(if.NQR_wo_ME){
-          load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd1.RData',p0,sim_idx)) 
+          # Change of N.knots 
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s.RData',p0,sim_idx,inp.sd,inp.N.Knots)) 
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+          
+          # Change distribution to Xunif
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots)) # it was inp.mul = 3 
+          load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+          
+          # Change X domain to X shift
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift))
           g.est_woME = NQR_res_woME_short$g.est 
           
           stopifnot( sum(Knots!=NQR_res_woME_short$Knots)==0 )
@@ -171,7 +191,7 @@ for(p0 in p0_list){
         sigma2_11_save[sim_idx]=sigma2_11.est
         sigma2_22_save[sim_idx]=sigma2_22.est
         sigma2_xx_save[sim_idx]=sigma2_xx.est
-        accept_g_save[sim_idx]=NQR_res$g_accept_ratio
+        
         
         g_woME_save[sim_idx,]=g.est_woME
         accept_g_woME_save[sim_idx]=NQR_res_woME_short$g_accept_ratio
@@ -199,22 +219,20 @@ for(p0 in p0_list){
   toc()
   
   
-  nconverge_idx=which(accept_g_woME_save<0.1)
-  {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
-  else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
+  # nconverge_idx=which(accept_g_woME_save<0.1)
+  # {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
+  # else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
   
   
-  # nconverge_idx=which(accept_g_save<0.1)
-  # {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME')}
-  #   else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME')}}
+  nconverge_idx=which(accept_g_save<0.1)
+  {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME')}
+    else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME')}}
   
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_woME_save[,1]))/nmax,'% is not yout done\n')
 
-
 g_save
-
 # plot(X[,2],y)
 # points(X[,2],y.est,type='l')
 # boxplot(y,y.est);abline(h=mean(y.quantile_save[-nconverge_idx]))
