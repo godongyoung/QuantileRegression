@@ -11,6 +11,32 @@ library(SuppDists)
 library(statmod)
 source('fn_wo_ME.R')
 # Function --------------------------------------------------------------------------------
+
+# Basic function for NQR
+qloss=function(u,p0){
+  return (u*(p0-(u<0)))
+}
+
+smooth.y=function(knots,g.tau,xout,version=1){
+  if(version==1){
+    mspline=spline(x = knots,y = g.tau,xout = xout)
+    y.est=mspline$y
+  }
+  if(version==2){
+    msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
+    mspline=predict(msmooth.spline,xout)
+    y.est=mspline$y
+  }
+  if(version==3){
+    g.tau=as.numeric(g.tau)
+    fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,length(knots))]) )
+    y.est=predict(fit.ns, data.frame(knots=xout))
+  }
+  return(y.est)
+}
+
+
+
 # These are functions for defining the domain range of parameter gamma.
 tmp_func=function(gamma_t){
   tmp.y=2*pnorm(-abs(gamma_t))*exp(gamma_t**2/2)
@@ -346,29 +372,6 @@ GAL_w_SME_nalpha=function(y,W1,p0){
 }
 NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30){
   # Function --------------------------------------------------------------------------------
-  qloss=function(u,p0){
-    return (u*(p0-(u<0)))
-  }
-  
-  smooth.y=function(knots,g.tau,xout,version=1){
-    if(version==1){
-      mspline=spline(x = knots,y = g.tau,xout = xout)
-      y.est=mspline$y
-    }
-    if(version==2){
-      msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
-      mspline=predict(msmooth.spline,xout)
-      y.est=mspline$y
-    }
-    if(version==3){
-      g.tau=as.numeric(g.tau)
-      fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
-      y.est=predict(fit.ns, data.frame(knots=xout))
-    }
-    return(y.est)
-  }
-  
-  
   log.likeli.g=function(g.t, lambda.t,X.1t){
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
     ui=y-y.est
@@ -474,6 +477,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   for(param.idx in 1:length(beta.est)){
     g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0
   }
+  g0 = smooth.y(tau.i,2+sin(tau.i),tau.i,version=3) # Starts with cheating value
   
   msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
   lambda0=msmooth.spline$lambda
@@ -645,28 +649,6 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
   N=30
   
   # Function --------------------------------------------------------------------------------
-  qloss=function(u,p0){
-    return (u*(p0-(u<0)))
-  }
-  
-  smooth.y=function(knots,g.tau,xout,version=1){
-    if(version==1){
-      mspline=spline(x = knots,y = g.tau,xout = xout)
-      y.est=mspline$y
-    }
-    if(version==2){
-      msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
-      mspline=predict(msmooth.spline,xout)
-      y.est=mspline$y
-    }
-    if(version==3){
-      g.tau=as.numeric(g.tau)
-      fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
-      y.est=predict(fit.ns, data.frame(knots=xout))
-    }
-    return(y.est)
-  }
-  
   
   log.likeli.g=function(g.t, lambda.t,X.1t){
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)

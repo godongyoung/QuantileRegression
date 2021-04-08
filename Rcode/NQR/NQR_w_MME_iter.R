@@ -26,7 +26,7 @@ print(sprintf("start:%s / end:%s",start.idx,end.idx))
 # Define True parameter--------------------------------------------------------------------------------
 if.short = T
 if.NQR_wo_ME = T
-inp.N.Knots = 20
+inp.N.Knots = 40
 inp.mul = 6
 n=1000
 alpha=c(4,3)
@@ -40,7 +40,7 @@ sigma2_22=1
 # Simulation start --------------------------------------------------------------------------------
 sim_idx=1
 nmax=500
-p0=0.1
+p0=0.9
 
 
 for(sim_idx in start.idx:end.idx){
@@ -113,8 +113,18 @@ for(sim_idx in start.idx:end.idx){
 # 
 # #Result check-----------------------------------------------------------------------------------------------
 # 
-# idx=2
-# ts.plot(X_trace[,idx]);abline(h=X[idx,2])
+idx=10
+# ts.plot(NQR_res$X_trace[,idx]);abline(h=X[idx,2])
+ts.plot(NQR_res$g_trace[,idx]);abline(h=g0[idx]+qnorm(p0))
+Knots = NQR_res$Knots
+N=inp.N.Knots
+g0 = smooth.y(Knots,2+sin(Knots),Knots,version=3) # Starts with cheating value
+ts.plot(NQR_res$alpha_trace[,1])
+ts.plot(NQR_res$alpha_trace[,2])
+ts.plot(NQR_res$sigma2_22_trace)
+ts.plot(NQR_res$sigma2_11_trace)
+ts.plot(NQR_res$sigma2_xx_trace)
+NQR_res$g_accept_ratio
 # 
 # g.est=colMeans(g_trace,na.rm = T)
 # plot(X[,2],y)

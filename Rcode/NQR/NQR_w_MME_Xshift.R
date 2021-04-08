@@ -85,7 +85,7 @@ for(sim_idx in start.idx:end.idx){
             NQR_res_short[['sigma2_xx.est']] = mean(NQR_res$sigma2_xx_trace)
             NQR_res_short[['Knots']] = NQR_res$Knots
             NQR_res_short[['inp.version']]=NQR_res$inp.version
-            save(NQR_res_short, file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift)) #old is W1 version!
+            save(NQR_res_short, file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift)) 
           }
           else{
             save(NQR_res, file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx)) #old is W1 version!  
@@ -101,7 +101,7 @@ for(sim_idx in start.idx:end.idx){
             NQR_res_woME_short[['l_accept_ratio']] = NQR_wo_ME_res$l_accept_ratio
             NQR_res_woME_short[['Knots']] = NQR_wo_ME_res$Knots
             NQR_res_woME_short[['inp.version']]=NQR_wo_ME_res$inp.version
-            save(NQR_res_woME_short, file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift)) #old is W1 version!
+            save(NQR_res_woME_short, file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift)) 
           }
           
         }

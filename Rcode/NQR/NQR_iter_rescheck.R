@@ -35,12 +35,14 @@ smooth.y=function(knots,g.tau,xout,version=1){
 }
 
 m.boxplot=function(save_data,p0,type){
+  valid_cnt = sum(!(is.na(save_data[,1])))
+  
   y.p0=2+sin(Knots)+qnorm(p = p0,mean = 0,sd = inp.sd)
   
   colnames(save_data)=Knots
   ds=cbind(rep(Knots,each=dim(save_data)[1]),as.numeric(save_data))
   colnames(ds)=c('Knots','value')
-  boxplot(value~Knots, data=ds,ylim=c(-1,5),main=sprintf('%s\'s Box plot of %s with Knots %s',type,p0,inp.N.Knots),names = round(Knots,1)) 
+  boxplot(value~Knots, data=ds,ylim=c(-1,5),main=sprintf('%s\'s Box plot of %s with Knots %s for %s simulation',type,p0,inp.N.Knots,valid_cnt),names = round(Knots,1)) 
   points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
 }
 
@@ -66,8 +68,10 @@ is.cal_quantile=F
 if.short = T
 if.NQR_wo_ME = T
 inp.sd = 1
-inp.N.Knots = 30
+
 inp.mul = 6
+X.shift = 5
+inp.N.Knots = 40
 N = inp.N.Knots
 
 
@@ -87,12 +91,10 @@ accept_g_save = rep(NA,nmax)
 accept_g_woME_save = rep(NA,nmax)
 g_woME_save=matrix(NA,ncol=inp.N.Knots,nrow=nmax)
 
-load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
-Knots=NQR_res$Knots
-Knots=seq(from = 0.1,to = 2*Mu_x,length.out = inp.N.Knots)
 
 
-#Data type test start #########################################################################################
+
+# Data type test start #########################################################################################
 # set.seed(20210401)
 # n=1e4
 # x1i=runif(n=n,min=0,max=2*Mu_x)
@@ -122,7 +124,7 @@ Knots=seq(from = 0.1,to = 2*Mu_x,length.out = inp.N.Knots)
 #   
 #   points(8,quantile(y[(7<x1i)&(x1i<9)],p0),col=3,lwd=5)
 # }
-#Data type test end#########################################################################################
+# Data type test end#########################################################################################
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
 length(p0_list)
 p0=0.1
@@ -148,11 +150,12 @@ for(p0 in p0_list){
         }
           if(if.short){
             # Change of N.knots 
-            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s.RData',p0,sim_idx,inp.sd,inp.N.Knots)) 
+            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s.RData',p0,sim_idx,inp.sd,inp.N.Knots))
+            load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
             
             # Change distribution to Xunif
-            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul)) # it was inp.mul = 3
-            load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%sXunif.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots)) # it was inp.mul = 3
+            # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
             
             # Change X domain to X shift
             # load(file=sprintf('../debugging/NQR_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift))
@@ -170,15 +173,16 @@ for(p0 in p0_list){
         
         if(if.NQR_wo_ME){
           # Change of N.knots 
-          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s.RData',p0,sim_idx,inp.sd,inp.N.Knots)) 
-          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s.RData',p0,sim_idx,inp.sd,inp.N.Knots))
+          load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
           
           # Change distribution to Xunif
-          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots)) # it was inp.mul = 3 
-          load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots)) # it was inp.mul = 3
+          # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xunif.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
           
           # Change X domain to X shift
           # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift))
+          
           g.est_woME = NQR_res_woME_short$g.est 
           
           stopifnot( sum(Knots!=NQR_res_woME_short$Knots)==0 )
@@ -215,24 +219,31 @@ for(p0 in p0_list){
         }
       },
       error = function(e) cat(sim_idx,'of',p0,'is not done yet. \n'))
+    if(sim_idx==1){
+      if(!if.short){
+        Knots=NQR_res$Knots  
+      }
+      if(if.short){
+        Knots=NQR_res_short$Knots
+      }
+    }
   }
   toc()
   
   
-  # nconverge_idx=which(accept_g_woME_save<0.1)
-  # {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
-  # else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
+  nconverge_idx=which(accept_g_woME_save<0.1)
+  {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
+  else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
   
   
-  nconverge_idx=which(accept_g_save<0.1)
-  {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME')}
-    else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME')}}
+  # nconverge_idx=which(accept_g_save<0.1)
+  # {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME')}
+  #   else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME')}}
   
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_woME_save[,1]))/nmax,'% is not yout done\n')
 
-g_save
 # plot(X[,2],y)
 # points(X[,2],y.est,type='l')
 # boxplot(y,y.est);abline(h=mean(y.quantile_save[-nconverge_idx]))

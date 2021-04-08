@@ -9,6 +9,33 @@ library(bayesQR)
 library(SuppDists)
 library(statmod)
 library(splines)
+
+# Function --------------------------------------------------------------------------------
+
+# Basic function for NQR
+qloss=function(u,p0){
+    return (u*(p0-(u<0)))
+}
+
+smooth.y=function(knots,g.tau,xout,version=1){
+    if(version==1){
+        mspline=spline(x = knots,y = g.tau,xout = xout)
+        y.est=mspline$y
+    }
+    if(version==2){
+        msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
+        mspline=predict(msmooth.spline,xout)
+        y.est=mspline$y
+    }
+    if(version==3){
+        g.tau=as.numeric(g.tau)
+        fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,length(knots))]) )
+        y.est=predict(fit.ns, data.frame(knots=xout))
+    }
+    return(y.est)
+}
+
+
 GAL_wo_ME=function(y,X,p0,seed=T){
     if(seed){
         set.seed(20210310)    
@@ -269,29 +296,6 @@ NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1,N.Knots=30){
     # inp.version=3 # version 1 for quick & dirty solution
     
     # Function --------------------------------------------------------------------------------
-    qloss=function(u,p0){
-        return (u*(p0-(u<0)))
-    }
-
-    smooth.y=function(knots,g.tau,xout,version=1){
-        if(version==1){
-            mspline=spline(x = knots,y = g.tau,xout = xout)
-            y.est=mspline$y
-        }
-        if(version==2){
-            msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
-            mspline=predict(msmooth.spline,xout)
-            y.est=mspline$y
-        }
-        if(version==3){
-            g.tau=as.numeric(g.tau)
-            fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
-            y.est=predict(fit.ns, data.frame(knots=xout))
-        }
-        return(y.est)
-    }
-    
-        
     log.likeli.g=function(g.t, lambda.t){
         y.est=smooth.y(tau.i,g.t,X[,2],version=inp.version)
         ui=y-y.est
