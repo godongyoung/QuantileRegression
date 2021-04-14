@@ -55,7 +55,6 @@ for(inp.N.Knots in c(30)){
         x1i=runif(n=n,min=0,max=2*Mu_x)
         # x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
         X=cbind(1,x1i)
-        X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
         inp.sd=1
         y=2+sin(x1i)+rnorm(n,0,inp.sd)    
         
