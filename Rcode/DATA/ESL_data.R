@@ -9,6 +9,7 @@ data("bone") #bone mineral
 head(bone);dim(bone)
 plot(bone$age,bone$spnbmd)
 
+# write.table(bone,'./DATA/bone.txt')
 n=1000
 X = runif(n,0,1)
 y = sin(12*(X+0.2))/(X+0.2) + rnorm(n,0,1)

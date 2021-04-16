@@ -761,7 +761,6 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   for(param.idx in 1:length(beta.est)){
     g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0
   }
-  g0 = smooth.y(tau.i,2+sin(tau.i),tau.i,version=3) # Starts with cheating value
   
   msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
   lambda0=msmooth.spline$lambda
