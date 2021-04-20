@@ -33,6 +33,7 @@ inp.N.Knots = 30
 inp.mul = 10
 n=1000
 alpha=c(4,3)
+X_demean = T
 
 sigma2_11=1
 sigma2_22=1
@@ -51,28 +52,44 @@ make_data = function(X){
   return(list('W1'=W1, 'W2'=W2))
 }
 
+make_X_shit = function(Mu_x, Xmul){
+  if(X_demean){
+    X_shit = Mu_x*Xmul
+  }
+  else{X_shit = 0}
+  
+  return(X_shit)
+}
 
+sim_idx = 1
 
 # Loop start #############################################################################################
 
 for(sim_idx in start.idx:end.idx){
   for(p0 in p0_list){
+
+    
     # ESL data1 #############################################################################################
     
     set.seed(sim_idx)
     
     inp.sd = 1
-    X = runif(n,0,1)
-    y = sin(12*(X+0.2))/(X+0.2) + rnorm(n,0,inp.sd)
-    Xrange = seq(0,1,length.out = 100)
-    # plot(X,y)
-    # for(p0 in p0_list){
-    #   y.p0 = sin(12*(Xrange+0.2))/(Xrange+0.2) + qnorm(p0,0,inp.sd)
-    #   points(Xrange,y.p0,col=2,lwd=2,type='l')
-    # }
-    X = cbind(1,X)
+    Xmul = 10
+    x1 = runif(n,0,1)
+    y = sin(12*(x1+0.2))/(x1+0.2) + rnorm(n,0,inp.sd)
+    X_shit = make_X_shit(0.5,Xmul)
+    X=cbind(1,x1*Xmul-X_shit)
+    Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
+    x1range = seq(0, 1,length.out = 100)
+    plot(X[,2],y)
+    for(p0 in p0_list){
+      y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0,0,inp.sd)
+      points(Xrange,y.p0,col=2,lwd=2,type='l')
+    }
+    
+    
     W_list = make_data(X)
-    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = 0,inp.max = 1,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
     
     # save result -----------------------------------------------------------------------------------------
     NQR_res_short = list() 
@@ -105,18 +122,20 @@ for(sim_idx in start.idx:end.idx){
     
     # Design Adaptive Nonparametric Regression #############################################################################################
     
-    X = runif(n,-4,2.5)
+    x1 = runif(n,-4,2.5)
     # X = cbind(rnorm(n/2,-1,1), rnorm(n/2,1.75,0.25));hist(X,nclass=100)
-    y = sin(2.5*X) + 0.4*rnorm(n,0,inp.sd)
-    Xrange = seq(-4,2.5,length.out = 100)
-    # plot(X,y)
-    # for(p0 in p0_list){
-    #   y.p0 = sin(2.5*Xrange) + 0.4*qnorm(p0,0,inp.sd)
-    #   points(Xrange,y.p0,col=2,lwd=2,type='l')
-    # }
-    X = cbind(1,X)
+    y = sin(2.5*x1) + 0.4*rnorm(n,0,inp.sd)
+    x1range = seq(-4,2.5,length.out = 100)
+    Xrange = seq(-5,5,length.out = 100)
+    X=cbind(1,((x1+4)/6.5)*Xmul-X_shit)
+    plot(X[,2],y)
+    for(p0 in p0_list){
+      y.p0 = sin(2.5*x1range) + 0.4*qnorm(p0,0,inp.sd)
+      points(Xrange,y.p0,col=2,lwd=2,type='l')
+    }
+    
     W_list = make_data(X)
-    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -4,inp.max = 2.5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
     
     # save result -----------------------------------------------------------------------------------------
     NQR_res_short = list() 
@@ -150,7 +169,7 @@ for(sim_idx in start.idx:end.idx){
     # }
     X = cbind(1,X)
     W_list = make_data(X)
-    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = 0,inp.max = 1,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
     
     # save result -----------------------------------------------------------------------------------------
     NQR_res_short = list() 

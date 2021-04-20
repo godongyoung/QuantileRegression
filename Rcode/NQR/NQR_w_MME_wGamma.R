@@ -42,6 +42,7 @@ sigma2_22=1
 # Simulation start --------------------------------------------------------------------------------
 sim_idx=1
 nmax=500
+p0=0.5
 
 for(inp.N.Knots in c(30)){
   for(sim_idx in start.idx:end.idx){
