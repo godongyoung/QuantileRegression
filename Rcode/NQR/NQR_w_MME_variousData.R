@@ -82,8 +82,8 @@ for(sim_idx in start.idx:end.idx){
     Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
     x1range = seq(0, 1,length.out = 100)
     plot(X[,2],y)
-    for(p0 in p0_list){
-      y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0,0,inp.sd)
+    for(p0.tmp in p0_list){
+      y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0.tmp,0,inp.sd)
       points(Xrange,y.p0,col=2,lwd=2,type='l')
     }
     
@@ -115,8 +115,8 @@ for(sim_idx in start.idx:end.idx){
     # X = runif(n,0,1)
     # y = sin(4*X) + rnorm(n,0,inp.sd)
     # plot(X,y)
-    # for(p0 in p0_list){
-    #   y.p0 = sin(4*Xrange) + qnorm(p0,0,inp.sd)
+    # for(p0.tmp in p0_list){
+    #   y.p0 = sin(4*Xrange) + qnorm(p0.tmp,0,inp.sd)
     #   points(Xrange,y.p0,col=2,lwd=2,type='l')
     # }
     
@@ -129,8 +129,8 @@ for(sim_idx in start.idx:end.idx){
     Xrange = seq(-5,5,length.out = 100)
     X=cbind(1,((x1+4)/6.5)*Xmul-X_shit)
     plot(X[,2],y)
-    for(p0 in p0_list){
-      y.p0 = sin(2.5*x1range) + 0.4*qnorm(p0,0,inp.sd)
+    for(p0.tmp in p0_list){
+      y.p0 = sin(2.5*x1range) + 0.4*qnorm(p0.tmp,0,inp.sd)
       points(Xrange,y.p0,col=2,lwd=2,type='l')
     }
     
@@ -158,16 +158,18 @@ for(sim_idx in start.idx:end.idx){
     }
     
     # An Introduction to Kernel and Nearest-Neighbor Nonparametric Regression #############################################################################################
-    X = runif(n,0,1)
+    x1 = runif(n,0,1)
     inp.sd = 0.5
-    y = X*sin(2.5*pi*X) + rnorm(n,0,inp.sd)
-    Xrange = seq(0,1,length.out = 100)
-    # plot(X,y)
-    # for(p0 in p0_list){
-    #   y.p0 = Xrange*sin(2.5*pi*Xrange) + qnorm(p0,0,inp.sd)
-    #   points(Xrange,y.p0,col=2,lwd=2,type='l')
-    # }
-    X = cbind(1,X)
+    y = x1*sin(2.5*pi*x1) + rnorm(n,0,inp.sd)
+    X=cbind(1,x1*Xmul-X_shit)
+    Xrange = seq(-5, 5,length.out = 100)
+    x1range = seq(0, 1,length.out = 100)
+    plot(X[,2],y)
+    for(p0.tmp in p0_list){
+      y.p0 = x1range*sin(2.5*pi*x1range) + qnorm(p0.tmp,0,inp.sd)
+      points(Xrange,y.p0,col=2,lwd=2,type='l')
+    }
+
     W_list = make_data(X)
     NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
     
