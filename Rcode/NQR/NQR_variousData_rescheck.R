@@ -34,27 +34,52 @@ smooth.y=function(knots,g.tau,xout,version=1){
   return(y.est)
 }
 
+gen_y.p0 = function(data.type,tmp.p0){
+  if(data.type==1){
+    x1range = seq(0, 1,length.out = N)
+    y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) 
+  }
+  if(data.type==2){
+    x1range = seq(-4,2.5,length.out = N)
+    y.p0 = sin(2.5*x1range) 
+  }
+  if(data.type==3){
+    x1range = seq(0, 1,length.out = N)
+    y.p0 = x1range*sin(2.5*pi*x1range) 
+  }
+  return(y.p0 + qnorm(p = tmp.p0,mean = 0,sd = inp.sd)  )
+}
+
 m.boxplot=function(save_data,p0,type,data.type){
   valid_cnt = sum(!(is.na(save_data[,1])))
   
-  if(data.type==1){
-    y.p0 = sin(12*(Knots+0.2))/(Knots+0.2) + qnorm(p = p0,mean = 0,sd = inp.sd)  
-  }
-  if(data.type==2){
-    y.p0 = sin(2.5*Knots) + qnorm(p = p0,mean = 0,sd = inp.sd)  
-  }
-  if(data.type==3){
-    y.p0 = Knots*sin(2.5*pi*Knots) + qnorm(p = p0,mean = 0,sd = inp.sd)  
-  }
   colnames(save_data)=Knots
   ds=cbind(rep(Knots,each=dim(save_data)[1]),as.numeric(save_data))
   colnames(ds)=c('Knots','value')
-  boxplot(value~Knots, data=ds,ylim=c(-5,5),main=sprintf('%s\'s Box plot of %s with Knots %s for %s simulation',type,p0,inp.N.Knots,valid_cnt),names = round(Knots,1)) 
+  
+  if(data.type==1){inp.ylim = c(-5,5)}
+  if(data.type==2){inp.ylim = c(-3,3)}
+  if(data.type==3){inp.ylim = c(-1.5,2)}
+  
+  
+  boxplot(value~Knots, data=ds,ylim=inp.ylim,main=sprintf('%s\'s Box plot of %s with Knots %s for %s simulation',type,p0,inp.N.Knots,valid_cnt),names = round(Knots,1)) 
+  for(tmp.p0 in p0_list){
+    y.p0 = gen_y.p0(data.type,tmp.p0)
+    points(seq(1:length(Knots)),y.p0,type='l',lwd=2,col=3)
+  }
+  y.p0 = gen_y.p0(data.type,p0)
   points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
 }
 
+HPD_ratio = function(g_trace,lb=0.05,ub=0.95){
+  g_quantile = apply(g_trace,MARGIN = 2,FUN = function(x) quantile(x ,probs = c(lb,ub)))
+  y.p0 = gen_y.p0(data.type,tmp.p0 = p0 )
+  diff_mat = (g_quantile)-matrix(rep(y.p0,each = 2),nrow=2)
+  HPD_include = (sign(diff_mat[1,]) * sign(diff_mat[2,]) ) == rep(-1,N)
+  return(mean(HPD_include))
+}
 
-
+# save_data = g_save;type='wME';data.type=1
 
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
@@ -67,7 +92,7 @@ sigma2_22=1
 nmax=500
 
 is.plot=F
-if.short = T
+if.short = F
 if.NQR_wo_ME = F
 inp.N.Knots = 30
 inp.mul = 10
@@ -84,6 +109,7 @@ sigma2_11_save=rep(NA,nmax)
 sigma2_22_save=rep(NA,nmax)
 sigma2_xx_save=rep(NA,nmax)
 accept_g_save = rep(NA,nmax)
+HPD_save = rep(NA,nmax)
 
 
 accept_g_woME_save = rep(NA,nmax)
@@ -91,8 +117,8 @@ g_woME_save=matrix(NA,ncol=inp.N.Knots,nrow=nmax)
 
 n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
-p0=0.1
-sim_idx=1
+p0=0.25
+sim_idx=61
 data.type = 1
 
 par(mfrow=c(length(p0_list),1))
@@ -119,6 +145,7 @@ for(p0 in p0_list){
               sigma2_22.est=mean(NQR_res$sigma2_22_trace)
               sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
               Knots = NQR_res$Knots
+              HPD_save[sim_idx] = HPD_ratio(NQR_res$g_trace)
             }
             if(if.short){
               load(file=sprintf('../debugging/NQR_data%s_short_%s_%s_sd%s_NKnots%s_mul%s.RData',data.type,p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
@@ -138,6 +165,9 @@ for(p0 in p0_list){
             
             g.est_woME = NQR_res_woME_short$g.est 
             stopifnot( sum(Knots!=NQR_res_woME_short$Knots)==0 )
+            
+            g_woME_save[sim_idx,]=g.est_woME
+            accept_g_woME_save[sim_idx]=NQR_res_woME_short$g_accept_ratio
           }
           
           alpha_save[sim_idx,]=alpha.est
@@ -149,8 +179,7 @@ for(p0 in p0_list){
           sigma2_xx_save[sim_idx]=sigma2_xx.est
           
           
-          g_woME_save[sim_idx,]=g.est_woME
-          accept_g_woME_save[sim_idx]=NQR_res_woME_short$g_accept_ratio
+
           
           if(is.plot){
             par(mfrow=c(2,2))
@@ -180,14 +209,14 @@ for(p0 in p0_list){
   
   
   nconverge_idx=which(accept_g_save<0.1)
-  {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type='wME',data.type = data.type)}
+  {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type=round(mean(HPD_save,na.rm = T),3),data.type = data.type)}
     else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME',data.type = data.type)}}
   
 }
 par(mfrow=c(1,1))
-cat(sum(is.na(g_woME_save[,1]))/nmax,'% is not yout done\n')
+cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
 
-
+round(mean(HPD_save,na.rm = T),3)
 # Make larger data for Ground Truth--------------------------------------------------------------------------------
 set.seed(sim_idx)
 n=1e4
@@ -305,3 +334,33 @@ for(idx in 1:length(condition)){
 }
 # sim_idx=condition[1]
 
+
+par(mfrow=c(1,1))
+NQR_res$g_accept_ratio
+NQR_res$x_accept_ratio
+ts.plot(NQR_res$g_trace[,1])
+acf(NQR_res$g_trace[,1])
+ts.plot(NQR_res$X_trace[,1])
+acf(NQR_res$X_trace[,1])
+NQR_res$l_accept_ratio
+mean(NQR_res$lambda_trace)
+mean(NQR_res$mux_trace)
+mean(NQR_res$sigma2_11_trace)
+mean(NQR_res$sigma2_22_trace)
+mean(NQR_res$sigma2_xx_trace)
+X.est = colMeans(NQR_res$X_trace)
+colMeans(NQR_res$alpha_trace)
+alpha
+set.seed(sim_idx)
+x1 = runif(n,-4,2.5)
+plot(X.est,x1)
+
+
+
+
+HPD_ratio(NQR_res$g_trace)
+
+boxplot(g_save)
+points(seq(1,30),(g_quantile)[1,],type='l')
+points(seq(1,30),(g_quantile)[2,],type='l')
+points(seq(1,30),y.p0,type='l')
