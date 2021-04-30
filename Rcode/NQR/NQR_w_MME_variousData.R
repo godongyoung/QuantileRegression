@@ -30,7 +30,7 @@ print(sprintf("start:%s / end:%s",start.idx,end.idx))
 if.short = T
 if.NQR_wo_ME = F
 inp.N.Knots = 30
-inp.mul = 30
+inp.mul = 10
 n=1000
 alpha=c(4,3)
 X_demean = T
@@ -62,36 +62,116 @@ make_X_shit = function(Mu_x, Xmul){
 }
 
 sim_idx = 1
-
+p0 = 0.1
 # Loop start #############################################################################################
 
 for(sim_idx in start.idx:end.idx){
   for(p0 in p0_list){
 
     # 
-    # # ESL data1 #############################################################################################
-    # 
+    # ESL data1 #############################################################################################
+
+    set.seed(sim_idx)
+    inp.sd = 1
+    Xmul = 10
+    x1 = runif(n,0,1)
+    y = sin(12*(x1+0.2))/(x1+0.2) + rnorm(n,0,inp.sd)
+    X_shit = make_X_shit(0.5,Xmul)
+    X=cbind(1,x1*Xmul-X_shit)
+    Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
+    x1range = seq(0, 1,length.out = 100)
+    plot(X[,2],y)
+    for(p0.tmp in p0_list){
+      y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0.tmp,0,inp.sd)
+      points(Xrange,y.p0,col=2,lwd=2,type='l')
+    }
+
+    
+    set.seed(sim_idx)
+    inp.sd = 1
+    Xmul = 10
+    x1 = runif(n,0,1)
+    y = sin(12*(x1+0.2))/(x1+0.2) + rt(n,df=3)
+    X_shit = make_X_shit(0.5,Xmul)
+    X=cbind(1,x1*Xmul-X_shit)
+    Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
+    x1range = seq(0, 1,length.out = 100)
+    plot(X[,2],y)
+    for(p0.tmp in p0_list){
+      y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qt(p0.tmp,df=3)
+      points(Xrange,y.p0,col=2,lwd=2,type='l')
+    }
+
+    W_list = make_data(X)
+    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_res, file=sprintf('../debugging/NQR_data1_t_wME_%s_%s.RData',p0,sim_idx))
+
+    NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data1_t_woME_%s_%s.RData',p0,sim_idx))
+    
+    NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_W2_ME_res, file=sprintf('../debugging/NQR_data1_t_W2_%s_%s.RData',p0,sim_idx))
+
+    # data2 #############################################################################################
+    # Fast Nonparametric Quantile Regression With Arbitrary Smoothing Methods
+    # Heteroscedasticity
+    set.seed(sim_idx)
+    x1 = (seq(1,n)-1)/n
+    inp.sd = 0.07
+    y = sin(10*x1) + (x1+0.25)/(0.1)*rnorm(n,0,sd=inp.sd)
+    X_shit = make_X_shit(0.5,Xmul)
+    X=cbind(1,x1*Xmul-X_shit)
+    Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
+    x1range = seq(0, 1,length.out = 100)
+    
+    plot(X[,2],y)
+    for(tmp.p0 in p0_list){
+      y.p0 = sin(10*x1range) + (x1range+0.25)/(0.1)*qnorm(tmp.p0,0,inp.sd)
+      points(Xrange,y.p0,type='l',col=2,lwd=3)
+    }
+    
+    W_list = make_data(X)
+    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_res, file=sprintf('../debugging/NQR_data2_wME_%s_%s.RData',p0,sim_idx))
+    
+    NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data2_woME_%s_%s.RData',p0,sim_idx))
+    
+    NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_W2_ME_res, file=sprintf('../debugging/NQR_data2_W2_%s_%s.RData',p0,sim_idx))
+
+    # # ESL data2 #############################################################################################
+    # # X = runif(n,0,1)
+    # # y = sin(4*X) + rnorm(n,0,inp.sd)
+    # # plot(X,y)
+    # # for(p0.tmp in p0_list){
+    # #   y.p0 = sin(4*Xrange) + qnorm(p0.tmp,0,inp.sd)
+    # #   points(Xrange,y.p0,col=2,lwd=2,type='l')
+    # # }
+    
+    # Design Adaptive Nonparametric Regression #############################################################################################
     # set.seed(sim_idx)
     # inp.sd = 1
     # Xmul = 10
-    # x1 = runif(n,0,1)
-    # y = sin(12*(x1+0.2))/(x1+0.2) + rnorm(n,0,inp.sd)
     # X_shit = make_X_shit(0.5,Xmul)
-    # X=cbind(1,x1*Xmul-X_shit)
-    # Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
-    # x1range = seq(0, 1,length.out = 100)
+    # x1 = runif(n,-4,2.5)
+    # # X = cbind(rnorm(n/2,-1,1), rnorm(n/2,1.75,0.25));hist(X,nclass=100)
+    # y = sin(2.5*x1) + 0.4*rnorm(n,0,inp.sd)
+    # x1range = seq(-4,2.5,length.out = 100)
+    # Xrange = seq(-5,5,length.out = 100)
+    # X=cbind(1,((x1+4)/6.5)*Xmul-X_shit)
     # plot(X[,2],y)
     # for(p0.tmp in p0_list){
-    #   y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0.tmp,0,inp.sd)
+    #   y.p0 = sin(2.5*x1range) + 0.4*qnorm(p0.tmp,0,inp.sd)
     #   points(Xrange,y.p0,col=2,lwd=2,type='l')
     # }
     # 
-    # 
     # W_list = make_data(X)
     # NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    # save(NQR_res, file=sprintf('../debugging/NQR_data2_%s_%s.RData',p0,sim_idx)) 
     # 
     # # save result -----------------------------------------------------------------------------------------
-    # NQR_res_short = list()
+    # NQR_res_short = list() 
     # NQR_res_short[['g.est']] = colMeans(NQR_res$g_trace)
     # NQR_res_short[['lambda.est']] = mean(NQR_res$lambda_trace)
     # NQR_res_short[['g_accept_ratio']] =NQR_res$g_accept_ratio
@@ -105,89 +185,50 @@ for(sim_idx in start.idx:end.idx){
     # NQR_res_short[['sigma2_xx.est']] = mean(NQR_res$sigma2_xx_trace)
     # NQR_res_short[['Knots']] = NQR_res$Knots
     # NQR_res_short[['inp.version']]=NQR_res$inp.version
-    # save(NQR_res_short, file=sprintf('../debugging/NQR_data1_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+    # save(NQR_res_short, file=sprintf('../debugging/NQR_data2_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
     # if(sim_idx%%20==1){
-    #   save(NQR_res, file=sprintf('../debugging/NQR_data1_%s_%s.RData',p0,sim_idx))
+    #   save(NQR_res, file=sprintf('../debugging/NQR_data2_%s_%s.RData',p0,sim_idx)) 
     # }
-    # 
-    # # ESL data2 #############################################################################################
-    # # X = runif(n,0,1)
-    # # y = sin(4*X) + rnorm(n,0,inp.sd)
-    # # plot(X,y)
-    # # for(p0.tmp in p0_list){
-    # #   y.p0 = sin(4*Xrange) + qnorm(p0.tmp,0,inp.sd)
-    # #   points(Xrange,y.p0,col=2,lwd=2,type='l')
-    # # }
-    
-    # Design Adaptive Nonparametric Regression #############################################################################################
-    set.seed(sim_idx)
-    inp.sd = 1
-    Xmul = 10
-    X_shit = make_X_shit(0.5,Xmul)
-    x1 = runif(n,-4,2.5)
-    # X = cbind(rnorm(n/2,-1,1), rnorm(n/2,1.75,0.25));hist(X,nclass=100)
-    y = sin(2.5*x1) + 0.4*rnorm(n,0,inp.sd)
-    x1range = seq(-4,2.5,length.out = 100)
-    Xrange = seq(-5,5,length.out = 100)
-    X=cbind(1,((x1+4)/6.5)*Xmul-X_shit)
-    plot(X[,2],y)
-    for(p0.tmp in p0_list){
-      y.p0 = sin(2.5*x1range) + 0.4*qnorm(p0.tmp,0,inp.sd)
-      points(Xrange,y.p0,col=2,lwd=2,type='l')
-    }
-    
-    W_list = make_data(X)
-    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    
-    # save result -----------------------------------------------------------------------------------------
-    NQR_res_short = list() 
-    NQR_res_short[['g.est']] = colMeans(NQR_res$g_trace)
-    NQR_res_short[['lambda.est']] = mean(NQR_res$lambda_trace)
-    NQR_res_short[['g_accept_ratio']] =NQR_res$g_accept_ratio
-    NQR_res_short[['l_accept_ratio']] = NQR_res$l_accept_ratio
-    NQR_res_short[['X.est']] = colMeans(NQR_res$X_trace)
-    NQR_res_short[['x_accept_ratio']] = NQR_res$x_accept_ratio
-    NQR_res_short[['alpha.est']] = colMeans(NQR_res$alpha_trace)
-    NQR_res_short[['mux.est']] = mean(NQR_res$mux_trace)
-    NQR_res_short[['sigma2_22.est']] = mean(NQR_res$sigma2_22_trace)
-    NQR_res_short[['sigma2_11.est']] = mean(NQR_res$sigma2_11_trace)
-    NQR_res_short[['sigma2_xx.est']] = mean(NQR_res$sigma2_xx_trace)
-    NQR_res_short[['Knots']] = NQR_res$Knots
-    NQR_res_short[['inp.version']]=NQR_res$inp.version
-    save(NQR_res_short, file=sprintf('../debugging/NQR_data2_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
-    if(sim_idx%%20==1){
-      save(NQR_res, file=sprintf('../debugging/NQR_data2_%s_%s.RData',p0,sim_idx)) #old is W1 version! 
-    }
-    # fit NQR wo MME--------------------------------------------------------------------------------
-    if(if.NQR_wo_ME){
-      NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-      NQR_res_woME_short = list() 
-      NQR_res_woME_short[['g.est']] = colMeans(NQR_wo_ME_res$g_trace)
-      NQR_res_woME_short[['lambda.est']] = mean(NQR_wo_ME_res$lambda_trace)
-      NQR_res_woME_short[['g_accept_ratio']] =NQR_wo_ME_res$g_accept_ratio
-      NQR_res_woME_short[['l_accept_ratio']] = NQR_wo_ME_res$l_accept_ratio
-      NQR_res_woME_short[['Knots']] = NQR_wo_ME_res$Knots
-      NQR_res_woME_short[['inp.version']]=NQR_wo_ME_res$inp.version
-      save(NQR_res_woME_short, file=sprintf('../debugging/NQR_data2_woME_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
-    }
+    # # fit NQR wo MME--------------------------------------------------------------------------------
+    # if(if.NQR_wo_ME){
+    #   NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    #   save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data2_woME_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+    #   
+    #   # NQR_res_woME_short = list() 
+    #   # NQR_res_woME_short[['g.est']] = colMeans(NQR_wo_ME_res$g_trace)
+    #   # NQR_res_woME_short[['lambda.est']] = mean(NQR_wo_ME_res$lambda_trace)
+    #   # NQR_res_woME_short[['g_accept_ratio']] =NQR_wo_ME_res$g_accept_ratio
+    #   # NQR_res_woME_short[['l_accept_ratio']] = NQR_wo_ME_res$l_accept_ratio
+    #   # NQR_res_woME_short[['Knots']] = NQR_wo_ME_res$Knots
+    #   # NQR_res_woME_short[['inp.version']]=NQR_wo_ME_res$inp.version
+    #   # save(NQR_res_woME_short, file=sprintf('../debugging/NQR_data2_woME_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+    # }
     
     
     # # An Introduction to Kernel and Nearest-Neighbor Nonparametric Regression #############################################################################################
-    # set.seed(sim_idx)
-    # x1 = runif(n,0,1)
-    # inp.sd = 0.5
-    # y = x1*sin(2.5*pi*x1) + rnorm(n,0,inp.sd)
-    # X=cbind(1,x1*Xmul-X_shit)
-    # Xrange = seq(-5, 5,length.out = 100)
-    # x1range = seq(0, 1,length.out = 100)
-    # plot(X[,2],y)
-    # for(p0.tmp in p0_list){
-    #   y.p0 = x1range*sin(2.5*pi*x1range) + qnorm(p0.tmp,0,inp.sd)
-    #   points(Xrange,y.p0,col=2,lwd=2,type='l')
-    # }
-    # 
-    # W_list = make_data(X)
+    set.seed(sim_idx)
+    x1 = runif(n,0,1)
+    inp.sd = 0.5
+    y = x1*sin(2.5*pi*x1) + rnorm(n,0,inp.sd)
+    X=cbind(1,x1*Xmul-X_shit)
+    Xrange = seq(-5, 5,length.out = 100)
+    x1range = seq(0, 1,length.out = 100)
+    plot(X[,2],y)
+    for(p0.tmp in p0_list){
+      y.p0 = x1range*sin(2.5*pi*x1range) + qnorm(p0.tmp,0,inp.sd)
+      points(Xrange,y.p0,col=2,lwd=2,type='l')
+    }
+    
+    
+    W_list = make_data(X)
     # NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    # save(NQR_res, file=sprintf('../debugging/NQR_data3_wME_%s_%s.RData',p0,sim_idx))
+    # 
+    # NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    # save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data3_woME_%s_%s.RData',p0,sim_idx))
+    
+    NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    save(NQR_W2_ME_res, file=sprintf('../debugging/NQR_data3_W2_%s_%s.RData',p0,sim_idx))
     # 
     # # save result -----------------------------------------------------------------------------------------
     # NQR_res_short = list() 
@@ -206,8 +247,22 @@ for(sim_idx in start.idx:end.idx){
     # NQR_res_short[['inp.version']]=NQR_res$inp.version
     # save(NQR_res_short, file=sprintf('../debugging/NQR_data3_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
     # if(sim_idx%%20==1){
-    #   save(NQR_res, file=sprintf('../debugging/NQR_data3_%s_%s.RData',p0,sim_idx)) #old is W1 version! 
+    #   save(NQR_res, file=sprintf('../debugging/NQR_data3_%s_%s.RData',p0,sim_idx)) 
     # }
+    # if(if.NQR_wo_ME){
+    #   NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+    #   save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data3_woME_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+    #   
+    #   # NQR_res_woME_short = list() 
+    #   # NQR_res_woME_short[['g.est']] = colMeans(NQR_wo_ME_res$g_trace)
+    #   # NQR_res_woME_short[['lambda.est']] = mean(NQR_wo_ME_res$lambda_trace)
+    #   # NQR_res_woME_short[['g_accept_ratio']] =NQR_wo_ME_res$g_accept_ratio
+    #   # NQR_res_woME_short[['l_accept_ratio']] = NQR_wo_ME_res$l_accept_ratio
+    #   # NQR_res_woME_short[['Knots']] = NQR_wo_ME_res$Knots
+    #   # NQR_res_woME_short[['inp.version']]=NQR_wo_ME_res$inp.version
+    #   # save(NQR_res_woME_short, file=sprintf('../debugging/NQR_data3_woME_short_%s_%s_sd%s_NKnots%s_mul%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
+    # }
+    # 
     # 
     # # # DPpackage: Bayesian Semi- and Nonparametric Modeling in R ------------------------------------------------------------------------------------------
     # # set.seed(0)

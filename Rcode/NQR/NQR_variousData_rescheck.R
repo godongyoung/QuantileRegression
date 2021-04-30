@@ -79,6 +79,40 @@ HPD_ratio = function(g_trace,lb=0.05,ub=0.95){
   return(mean(HPD_include))
 }
 
+make_X_shit = function(Mu_x, Xmul){
+  if(X_demean){
+    X_shit = Mu_x*Xmul
+  }
+  else{X_shit = 0}
+  return(X_shit)
+}
+
+true.g.func = function(inp.x,tmp.p0 = p0){
+  if(data.type==1){
+    inp.x = (inp.x+X_shit)/Xmul
+    y.p0 = sin(12*(inp.x+0.2))/(inp.x+0.2) 
+  }
+  if(data.type==2){
+    inp.x = (inp.x+X_shit)/Xmul*6.5 - 4
+    y.p0 = sin(2.5*inp.x) 
+  }
+  if(data.type==3){
+    inp.x = (inp.x+X_shit)/Xmul
+    y.p0 = inp.x*sin(2.5*pi*inp.x) 
+  }
+  return(y.p0 + qnorm(p = tmp.p0,mean = 0,sd = inp.sd)  )
+}
+
+ise_func = function(x){
+  return (((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2)
+}
+
+# g.tau=as.numeric(g.est);knots = Knots
+# fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+# y.est=predict(fit.ns, data.frame(knots=integral_range))
+est.g.func = function(inp.x){
+  predict(fit.ns, data.frame(knots=inp.x))
+}
 # save_data = g_save;type='wME';data.type=1
 
 # Define True parameter--------------------------------------------------------------------------------
@@ -92,11 +126,17 @@ sigma2_22=1
 nmax=500
 
 is.plot=F
-if.short = F
-if.NQR_wo_ME = F
+to_see = c('wME','woME','W2')[1]
 inp.N.Knots = 30
 inp.mul = 10
 N = inp.N.Knots
+
+
+X_demean = T
+Xmul = 10
+X_shit = make_X_shit(0.5,Xmul)
+integral_range = seq(-5,5,length.out = 1000)
+cal_MSE = F
 
 # Simulation check --------------------------------------------------------------------------------
 
@@ -110,75 +150,140 @@ sigma2_22_save=rep(NA,nmax)
 sigma2_xx_save=rep(NA,nmax)
 accept_g_save = rep(NA,nmax)
 HPD_save = rep(NA,nmax)
+ISE_save = rep(NA,nmax)
 
-
-accept_g_woME_save = rep(NA,nmax)
-g_woME_save=matrix(NA,ncol=inp.N.Knots,nrow=nmax)
 
 n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
-p0=0.25
-sim_idx=61
+p0=0.1
+sim_idx=1
 data.type = 1
 
 par(mfrow=c(length(p0_list),1))
 for(p0 in p0_list){
   tic()
-  for(sim_idx in 1:nmax){
+  # for( data.type in c(1,3)){
+  for( data.type in c(1)){
+    inp.sd = 1
+    if(data.type==3){
+      inp.sd = 0.5  
+    }
     # for(data.type in c(1,2,3)){
-    for(data.type in c(2)){
-      inp.sd = 1
-      if(data.type==3){
-        inp.sd = 0.5
-      }
+    for(sim_idx in 1:nmax){  
       tryCatch(
         {
           # Load MCMC result--------------------------------------------------------------------------------
-          {
-            if(!if.short){
-              load(file=sprintf('../debugging/NQR_data%s_%s_%s.RData',data.type,p0,sim_idx))
-              alpha.est=colMeans(NQR_res$alpha_trace)
-              g.est=colMeans(NQR_res$g_trace)
-              X.est=colMeans(NQR_res$X_trace)
-              mux.est=mean(NQR_res$mux_trace)
-              sigma2_11.est=mean(NQR_res$sigma2_11_trace)
-              sigma2_22.est=mean(NQR_res$sigma2_22_trace)
-              sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
-              Knots = NQR_res$Knots
-              HPD_save[sim_idx] = HPD_ratio(NQR_res$g_trace)
+          if(to_see == 'wME'){
+            load(file=sprintf('../debugging/NQR_data%s_wME_%s_%s.RData',data.type,p0,sim_idx))
+            alpha.est=colMeans(NQR_res$alpha_trace)
+            g.est=colMeans(NQR_res$g_trace)
+            X.est=colMeans(NQR_res$X_trace)
+            mux.est=mean(NQR_res$mux_trace)
+            sigma2_11.est=mean(NQR_res$sigma2_11_trace)
+            sigma2_22.est=mean(NQR_res$sigma2_22_trace)
+            sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
+            Knots = NQR_res$Knots
+            
+            g_save[sim_idx,]=g.est
+            HPD_save[sim_idx] = HPD_ratio(NQR_res$g_trace)
+            accept_g_save[sim_idx]=NQR_res$g_accept_ratio
+            
+            g.tau=as.numeric(g.est);knots = Knots
+            fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+            if(is.plot){
+              plot(integral_range,(est.g.func(integral_range)-mean(true.g.func(integral_range)))/sd(true.g.func(integral_range)))
+              points(integral_range,(true.g.func(integral_range)-mean(true.g.func(integral_range)))/sd(true.g.func(integral_range)),type='l')
+              points(integral_range,tmp.int(integral_range),type='l')
             }
-            if(if.short){
-              load(file=sprintf('../debugging/NQR_data%s_short_%s_%s_sd%s_NKnots%s_mul%s.RData',data.type,p0,sim_idx,inp.sd,inp.N.Knots,inp.mul))
-              alpha.est = NQR_res_short$alpha.est
-              g.est = NQR_res_short$g.est
-              X.est = NQR_res_short$X.est
-              mux.est = NQR_res_short$mux.est
-              sigma2_11.est = NQR_res_short$sigma2_11.est
-              sigma2_22.est = NQR_res_short$sigma2_22.est
-              sigma2_xx.est = NQR_res_short$sigma2_xx.est
-              Knots = NQR_res_short$Knots
-              accept_g_save[sim_idx]=NQR_res_short$g_accept_ratio
-            }}
-          
-          if(if.NQR_wo_ME){
-            # load(file=sprintf('../debugging/NQR_woME_short_%s_%s_sd%s_NKnots%s_mul%s_Xshift%s.RData',p0,sim_idx,inp.sd,inp.N.Knots,inp.mul,X.shift))
             
-            g.est_woME = NQR_res_woME_short$g.est 
-            stopifnot( sum(Knots!=NQR_res_woME_short$Knots)==0 )
+            ISE = integrate(ise_func,-5,5)$value
+            # ISE = integrate(function(x) ((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2, -5,5)$value
+            # ISE = integrate(function(x) (abs(true.g.func(x)-est.g.func(x)))/true.g.func(x), -5,5)$value
+            # ISE = integrate(function(x) (abs(true.g.func(x)-est.g.func(x))), -5,5)$value
+            ###
+            # tmp.int =function(x) ((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2
+            # stopifnot(ISE==integrate(function(x) tmp.int(x), -5,5)$value )
+            ###
+            ISE_save[sim_idx] = ISE
             
-            g_woME_save[sim_idx,]=g.est_woME
-            accept_g_woME_save[sim_idx]=NQR_res_woME_short$g_accept_ratio
+            
+            if(cal_MSE){
+              set.seed(sim_idx)
+              inp.sd = 1
+              Xmul = 10
+              x1 = runif(n,0,1)
+              y = sin(12*(x1+0.2))/(x1+0.2) + rnorm(n,0,inp.sd)
+              X_shit = make_X_shit(0.5,Xmul)
+              X=cbind(1,x1*Xmul-X_shit)
+              X.tmp = (X[,2]+X_shit)/Xmul
+              y.p0 = sin(12*(X.tmp+0.2))/(X.tmp+0.2) + qnorm(p0,0,inp.sd)
+              y.p0.est = est.g.func(X[,2])
+              plot(X[,2],y.p0)
+              points(X[,2],y.p0.est)
+              
+              MSE = mean((y.p0-y.p0.est)**2)
+            }
           }
-          
-          alpha_save[sim_idx,]=alpha.est
-          g_save[sim_idx,]=g.est
-          X_save[sim_idx,]=X.est
-          mux_save[sim_idx]=mux.est
-          sigma2_11_save[sim_idx]=sigma2_11.est
-          sigma2_22_save[sim_idx]=sigma2_22.est
-          sigma2_xx_save[sim_idx]=sigma2_xx.est
-          
-          
+          if(to_see == 'woME'){
+            load(file=sprintf('../debugging/NQR_data%s_woME_%s_%s.RData',data.type,p0,sim_idx))
+            
+            g.est = colMeans(NQR_wo_ME_res$g_trace) 
+            Knots = NQR_wo_ME_res$Knots
+            # stopifnot( sum(Knots!=NQR_wo_ME_res$Knots)==0 )
+            
+            g_save[sim_idx,]=g.est
+            accept_g_save[sim_idx]=NQR_wo_ME_res$g_accept_ratio
+            HPD_save[sim_idx] = HPD_ratio(NQR_wo_ME_res$g_trace)
+            
+            g.tau=as.numeric(g.est);knots = Knots
+            fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+            if(is.plot){
+              plot(integral_range,(est.g.func(integral_range)-mean(true.g.func(integral_range)))/sd(true.g.func(integral_range)))
+              points(integral_range,(true.g.func(integral_range)-mean(true.g.func(integral_range)))/sd(true.g.func(integral_range)),type='l')
+              points(integral_range,tmp.int(integral_range),type='l')
+            }
+            
+            ISE = integrate(ise_func,-5,5)$value
+            # ISE = integrate(function(x) ((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2, -5,5)$value
+            # ISE = integrate(function(x) (abs(true.g.func(x)-est.g.func(x)))/true.g.func(x), -5,5)$value
+            # ISE = integrate(function(x) (abs(true.g.func(x)-est.g.func(x))), -5,5)$value
+            ###
+            # tmp.int =function(x) ((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2
+            # stopifnot(ISE==integrate(function(x) tmp.int(x), -5,5)$value )
+            ###
+            ISE_save[sim_idx] = ISE          
+          }
+          if(to_see == 'W2'){
+            load(file=sprintf('../debugging/NQR_data%s_W2_%s_%s.RData',data.type,p0,sim_idx))
+            # I mistakenly define the result list as 'NQR_wo_ME_res'...
+            
+            g.est = colMeans(NQR_wo_ME_res$g_trace) 
+            Knots = NQR_wo_ME_res$Knots
+            # stopifnot( sum(Knots!=NQR_wo_ME_res$Knots)==0 )
+            
+            g_save[sim_idx,]=g.est
+            accept_g_save[sim_idx]=NQR_wo_ME_res$g_accept_ratio
+            HPD_save[sim_idx] = HPD_ratio(NQR_wo_ME_res$g_trace)
+            
+            g.tau=as.numeric(g.est);knots = Knots
+            fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+            if(is.plot){
+              plot(integral_range,(est.g.func(integral_range)-mean(true.g.func(integral_range)))/sd(true.g.func(integral_range)))
+              points(integral_range,(true.g.func(integral_range)-mean(true.g.func(integral_range)))/sd(true.g.func(integral_range)),type='l')
+              points(integral_range,tmp.int(integral_range),type='l')
+            }
+            
+            ISE = integrate(ise_func,-5,5)$value
+            # ISE = integrate(function(x) ((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2, -5,5)$value
+            # ISE = integrate(function(x) (abs(true.g.func(x)-est.g.func(x)))/true.g.func(x), -5,5)$value
+            # ISE = integrate(function(x) (abs(true.g.func(x)-est.g.func(x))), -5,5)$value
+            ###
+            # tmp.int =function(x) ((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2
+            # stopifnot(ISE==integrate(function(x) tmp.int(x), -5,5)$value )
+            ###
+            ISE_save[sim_idx] = ISE       
+          }
+
 
           
           if(is.plot){
@@ -190,33 +295,31 @@ for(p0 in p0_list){
           }
         },
         error = function(e) cat(sim_idx,'of',p0,'is not done yet. \n'))
-      if(sim_idx==1){
-        if(!if.short){
-          Knots=NQR_res$Knots  
-        }
-        if(if.short){
-          Knots=NQR_res_short$Knots
-        }
-      }      
     }
   }
   toc()
   
   
-  # nconverge_idx=which(accept_g_woME_save<0.1)
-  # {if(length(nconverge_idx)==0){m.boxplot(g_woME_save,p0,type='woME')}
-  #   else {m.boxplot(g_woME_save[-nconverge_idx,],p0,type='woME')}}
-  
-  
   nconverge_idx=which(accept_g_save<0.1)
-  {if(length(nconverge_idx)==0){m.boxplot(g_save,p0,type=round(mean(HPD_save,na.rm = T),3),data.type = data.type)}
-    else {m.boxplot(g_save[-nconverge_idx,],p0,type='wME',data.type = data.type)}}
-  
+  {if(length(nconverge_idx)==0){
+    m.boxplot(g_save,p0,type=paste(to_see,'HPD:',round(mean(HPD_save,na.rm = T),3),',MISE:',round(mean(ISE_save,na.rm = T),3)),data.type = data.type)
+    }
+    else {
+      m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type)
+      }
+    } 
+
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
 
+mean(ISE_save,na.rm = T)
+median(ISE_save,na.rm = T)
+ts.plot(NQR_res$g_trace[,1])
+ts.plot(NQR_res$X_trace[,1])
+NQR_res$g_accept_ratio
 round(mean(HPD_save,na.rm = T),3)
+which(ISE_save>100)
 # Make larger data for Ground Truth--------------------------------------------------------------------------------
 set.seed(sim_idx)
 n=1e4
