@@ -71,21 +71,20 @@ for(sim_idx in start.idx:end.idx){
     # 
     # ESL data1 #############################################################################################
 
-    set.seed(sim_idx)
-    inp.sd = 1
-    Xmul = 10
-    x1 = runif(n,0,1)
-    y = sin(12*(x1+0.2))/(x1+0.2) + rnorm(n,0,inp.sd)
-    X_shit = make_X_shit(0.5,Xmul)
-    X=cbind(1,x1*Xmul-X_shit)
-    Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
-    x1range = seq(0, 1,length.out = 100)
-    plot(X[,2],y)
-    for(p0.tmp in p0_list){
-      y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0.tmp,0,inp.sd)
-      points(Xrange,y.p0,col=2,lwd=2,type='l')
-    }
-
+    # set.seed(sim_idx)
+    # inp.sd = 1
+    # Xmul = 10
+    # x1 = runif(n,0,1)
+    # y = sin(12*(x1+0.2))/(x1+0.2) + rnorm(n,0,inp.sd)
+    # X_shit = make_X_shit(0.5,Xmul)
+    # X=cbind(1,x1*Xmul-X_shit)
+    # Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
+    # x1range = seq(0, 1,length.out = 100)
+    # plot(X[,2],y)
+    # for(p0.tmp in p0_list){
+    #   y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) + qnorm(p0.tmp,0,inp.sd)
+    #   points(Xrange,y.p0,col=2,lwd=2,type='l')
+    # }
     
     set.seed(sim_idx)
     inp.sd = 1
@@ -103,14 +102,30 @@ for(sim_idx in start.idx:end.idx){
     }
 
     W_list = make_data(X)
-    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_res, file=sprintf('../debugging/NQR_data1_t_wME_%s_%s.RData',p0,sim_idx))
-
-    NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data1_t_woME_%s_%s.RData',p0,sim_idx))
+    f_name = sprintf('../debugging/NQR_data1_t_wME_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_res, file=f_name)
+    }
     
-    NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_W2_ME_res, file=sprintf('../debugging/NQR_data1_t_W2_%s_%s.RData',p0,sim_idx))
+    f_name = sprintf('../debugging/NQR_data1_t_woME_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_wo_ME_res, file=f_name)
+    }
+
+    f_name = sprintf('../debugging/NQR_data1_t_W2_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_W2_ME_res, file=f_name)
+    }
+    if(file.exists(file=f_name)){
+      load(f_name)
+      if(NQR_W2_ME_res$g_accept_ratio<0.1){
+        NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
+        save(NQR_W2_ME_res, file=f_name)
+      }
+    }
 
     # data2 #############################################################################################
     # Fast Nonparametric Quantile Regression With Arbitrary Smoothing Methods
@@ -130,16 +145,33 @@ for(sim_idx in start.idx:end.idx){
       points(Xrange,y.p0,type='l',col=2,lwd=3)
     }
     
+    
     W_list = make_data(X)
-    NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_res, file=sprintf('../debugging/NQR_data2_wME_%s_%s.RData',p0,sim_idx))
+    f_name = sprintf('../debugging/NQR_data2_wME_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_res, file=f_name)
+    }
     
-    NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data2_woME_%s_%s.RData',p0,sim_idx))
+    f_name = sprintf('../debugging/NQR_data2_woME_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_wo_ME_res, file=f_name)
+    }
     
-    NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_W2_ME_res, file=sprintf('../debugging/NQR_data2_W2_%s_%s.RData',p0,sim_idx))
-
+    f_name = sprintf('../debugging/NQR_data2_W2_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_W2_ME_res, file=f_name)
+    }
+    if(file.exists(file=f_name)){
+      load(f_name)
+      if(NQR_W2_ME_res$g_accept_ratio<0.1){
+        NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
+        save(NQR_W2_ME_res, file=f_name)
+      }
+    }
+    
     # # ESL data2 #############################################################################################
     # # X = runif(n,0,1)
     # # y = sin(4*X) + rnorm(n,0,inp.sd)
@@ -221,14 +253,31 @@ for(sim_idx in start.idx:end.idx){
     
     
     W_list = make_data(X)
-    # NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    # save(NQR_res, file=sprintf('../debugging/NQR_data3_wME_%s_%s.RData',p0,sim_idx))
-    # 
-    # NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    # save(NQR_wo_ME_res, file=sprintf('../debugging/NQR_data3_woME_%s_%s.RData',p0,sim_idx))
+    f_name = sprintf('../debugging/NQR_data3_wME_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_res, file=f_name)
+    }
     
-    NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-    save(NQR_W2_ME_res, file=sprintf('../debugging/NQR_data3_W2_%s_%s.RData',p0,sim_idx))
+    f_name = sprintf('../debugging/NQR_data3_woME_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_wo_ME_res, file=f_name)
+    }
+    
+    f_name = sprintf('../debugging/NQR_data3_W2_%s_%s.RData',p0,sim_idx)
+    if(!file.exists(file=f_name)){
+      NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+      save(NQR_W2_ME_res, file=f_name)
+    }
+    if(file.exists(file=f_name)){
+      load(f_name)
+      if(NQR_W2_ME_res$g_accept_ratio<0.1){
+        NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
+        save(NQR_W2_ME_res, file=f_name)
+      }
+    }
+
     # 
     # # save result -----------------------------------------------------------------------------------------
     # NQR_res_short = list() 
