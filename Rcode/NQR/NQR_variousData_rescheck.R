@@ -75,7 +75,7 @@ m.boxplot=function(save_data,p0,type,data.type){
   points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
 }
 
-HPD_ratio = function(g_trace,lb=0.05,ub=0.95){
+HPD_ratio = function(g_trace,lb=0.025,ub=0.975){
   g_quantile = apply(g_trace,MARGIN = 2,FUN = function(x) quantile(x ,probs = c(lb,ub)))
   y.p0 = gen_y.p0(data.type,tmp.p0 = p0 )
   diff_mat = (g_quantile)-matrix(rep(y.p0,each = 2),nrow=2)
@@ -112,7 +112,7 @@ true.g.func = function(inp.x,tmp.p0 = p0){
 
 ise_func = function(x){
   # return (((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2)
-  return (true.g.func(x)-est.g.func(x))**2
+  return ((true.g.func(x)-est.g.func(x))**2)
 }
 
 # g.tau=as.numeric(g.est);knots = Knots
@@ -162,10 +162,9 @@ n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
 p0=0.1
 sim_idx=1
-data.type = 3
+
+data.type = 2
 is.t=''
-
-
 inp.sd = 1
 if(data.type==1){
   is.t='t_'
@@ -180,8 +179,7 @@ if(data.type==3){
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
 par(mfrow=c(length(to_see_list),1))
-
-for(p0 in p0_list){
+for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
   for(to_see in to_see_list){
     
     # Define save matrix for current setting------------------------------------------------------------------------------------------
@@ -262,6 +260,8 @@ for(p0 in p0_list){
             }
             x1 = x1*10-5
             MSE = mean(ise_func(x1))
+            (ise_func(x1[1]))
+            (true.g.func(x1[1])-est.g.func(x1[1]))**2
             MSE_save[sim_idx] = MSE
           }
           
@@ -284,7 +284,9 @@ for(p0 in p0_list){
     if(length(nconverge_idx)==0){
       nconverge_idx = nmax+1
     }
-    
+    if((to_see=='W2')&(length(nconverge_idx)>200)){
+      nconverge_idx = nmax+1
+    }
     m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type)
 
     summary_list[[as.character(p0)]][[to_see]][['ISE']][['mean']] = mean(ISE_save[-nconverge_idx],na.rm = T)
