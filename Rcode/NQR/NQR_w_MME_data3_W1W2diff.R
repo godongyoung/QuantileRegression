@@ -49,8 +49,8 @@ make_data = function(X,W1.v2=F,W2.v2=F,version=1){
   W1=X%*%alpha+delta1
   W2=X[,2]+delta2
   if(W1.v2){
-    if(version==1){tmp.seed=9}
-    if(version==2){tmp.seed=1}
+    if(version==1){tmp.seed=5}
+    if(version==2){tmp.seed=5}
     
     set.seed(tmp.seed) #1, 9
     a = runif(1,min = 3,max = 5)
@@ -116,7 +116,7 @@ make_data = function(X,W1.v2=F,W2.v2=F,version=1){
 # 
 # # for deviating linear relationship------
 # tmp.seed=1
-# set.seed(1) #1, 9
+# set.seed(5) #1, 9
 # a = runif(1,min = 3,max = 5)
 # b = -1*runif(1,1/10,1/5)
 # c = runif(1,-3,3)
@@ -175,8 +175,8 @@ data.type=3
 W1.V2=T;W2.V2=T
 inp.version = 2
 # Loop start #############################################################################################
-plot(X[,2],W_list$W2);abline(0,1)
-plot(X[,2],W_list$W1);abline(lm(W_list$W1~X[,2])$coeff)
+# plot(X[,2],W_list$W2);abline(0,1)
+# plot(X[,2],W_list$W1);abline(lm(W_list$W1~X[,2])$coeff)
 for(sim_idx in start.idx:end.idx){
   for(p0 in p0_list){
     for(inp.version in c(1,2)){
