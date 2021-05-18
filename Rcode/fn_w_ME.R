@@ -373,7 +373,7 @@ GAL_w_SME_nalpha=function(y,W1,p0){
 
 
 
-NQR_w_MME_Gamma=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30){
+NQR_w_MME_Gamma=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30,Knots.direct=NA){
   # Function --------------------------------------------------------------------------------
   log.likeli.g=function(g.t, lambda.t,X.1t){
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
@@ -423,7 +423,13 @@ NQR_w_MME_Gamma=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N
   n = length(y)
   N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
-  tau.i=seq(from = inp.min,to = inp.max,length.out = N)
+  if(is.na(Knots.direct)){
+    tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
+  }
+  else{
+    tau.i = Knots.direct
+  }
+  
   
   hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
   # Make Q matrix
