@@ -660,7 +660,7 @@ NQR_w_MME_Gamma=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N
   res_list[['inp.version']]=inp.version  
   return(res_list)
 }
-NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30){
+NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30,Knots.direct=NA){
   # Function --------------------------------------------------------------------------------
   log.likeli.g=function(g.t, lambda.t,X.1t){
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
@@ -710,7 +710,14 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   n = length(y)
   N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
-  tau.i=seq(from = inp.min,to = inp.max,length.out = N)
+  # tau.i=seq(from = inp.min,to = inp.max,length.out = N)
+  if(is.na(Knots.direct)){
+    tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
+  }
+  else{
+    tau.i = Knots.direct
+  }
+  
   
   hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
   # Make Q matrix
@@ -767,6 +774,11 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   for(param.idx in 1:length(beta.est)){
     g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0
   }
+  
+  # For starting with NCS
+  fit.ns <- lm(y~ ns(x = X.1t, knots = tau.i[-c(1,length(tau.i))]) )
+  g0 = predict(fit.ns, data.frame(X.1t=tau.i))
+  
   
   msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
   lambda0=msmooth.spline$lambda
