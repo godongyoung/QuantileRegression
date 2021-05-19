@@ -5,24 +5,22 @@ source('fn_w_ME.R')
 load_data  = function(){
   data = read.csv('../Data/income_short.csv',skip = 1,header = F)
   colnames(data) = c('year','index','asset','salary_income','property_income') #조사연도,가구고유번호,자산,근로소득(보완),재산소득(보완)
-
+  
   y = data$asset
   W1 = data$property_income
   W2 = data$salary_income
   
   # truncate_data--------------------------------------------------------
   inval_idx = (W2==0)|(W1==0)
-  y = y[!inval_idx]
-  W1 = W1[!inval_idx]
-  W2 = W2[!inval_idx]
   
   inval_W2_idx = (W2 < quantile(W2,probs = c(0.001))) | (W2 > quantile(W2,probs = c(0.999))) # or 0.999 might be better solution
   inval_W1_idx = (W1 < quantile(W1,probs = c(0.001))) | (W1 > quantile(W1,probs = c(0.999))) 
   inval_y_idx = (y < quantile(y,probs = c(0.001))) | (y > quantile(y,probs = c(0.999))) 
-  sum(inval_W2_idx)
-  y = y[(!inval_W2_idx)&(!inval_W1_idx)&(!inval_y_idx)]
-  W1 = W1[(!inval_W2_idx)&(!inval_W1_idx)&(!inval_y_idx)]
-  W2 = W2[(!inval_W2_idx)&(!inval_W1_idx)&(!inval_y_idx)]
+  
+  total_val_idx = (!inval_idx)&(!inval_W2_idx)&(!inval_W1_idx)&(!inval_y_idx)
+  y = y[total_val_idx]
+  W1 = W1[total_val_idx]
+  W2 = W2[total_val_idx]
   
   # plot(W2,y)  
   
@@ -68,5 +66,3 @@ load_data  = function(){
   res_list[['Knots.driect']] = Knots.driect
   return(res_list)
 }
-
-
