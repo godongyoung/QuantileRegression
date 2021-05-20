@@ -423,7 +423,7 @@ NQR_w_MME_Gamma=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N
   n = length(y)
   N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
-  if(is.na(Knots.direct)){
+  if(all(is.na(Knots.direct))){
     tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
   }
   else{
@@ -711,7 +711,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
   # tau.i=seq(from = inp.min,to = inp.max,length.out = N)
-  if(is.na(Knots.direct)){
+  if(all(is.na(Knots.direct))){
     tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
   }
   else{
@@ -766,7 +766,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   BQR_res = mBayesQR(y,X.t,p0)
   beta.est=colMeans(BQR_res$beta_trace)
   if (sum(is.nan(beta.est))>0){ # for unknown error
-    QR_res=mQR(mcycle$accel,cbind(1,mcycle$times),p0)
+    QR_res=mQR(y,X.t,p0)
     beta.est=QR_res$beta_est
   }
   

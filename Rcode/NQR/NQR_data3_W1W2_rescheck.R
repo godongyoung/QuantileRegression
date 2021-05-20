@@ -179,11 +179,16 @@ gg_color_hue <- function(n) {
 }
 
 m.boxplo.v2=function(save_data_list,p0,data.type,save=F){
+  if(W1.V2&W2.V2){
+    f_name = sprintf('../Figure/data%s_W1W2_%s.png',data.type,p0)
+  }
+  else{
+    f_name = sprintf('../Figure/data%s_W1%sW2%s_ver%s_%s.png',data.type,W1.V2,W2.V2,inp.version,p0)
+  }
   
-  fname = sprintf('../Figure/data%s_W1W2_%s.png',data.type,p0)
   # tiff(fname, units="in", width=6*1.5, height=4*1.5, res=600)
   if(save){
-    png( fname, width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 13)  
+    png( f_name, width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 13)  
   }
   par(mfrow = c(1,1), mar = c(4,4,1,4))
   if(data.type==1){inp.ylim = c(-5,5)}
@@ -246,6 +251,7 @@ cal_MSE = T
 # Simulation check --------------------------------------------------------------------------------
 alpha_save = matrix(NA,ncol=2,nrow=nmax)
 X_save=matrix(NA,ncol=n,nrow=nmax)
+X_save2=matrix(NA,ncol=n,nrow=nmax)
 mux_save=rep(NA,nmax)
 sigma2_11_save=rep(NA,nmax)
 sigma2_22_save=rep(NA,nmax)
@@ -254,7 +260,7 @@ sigma2_xx_save=rep(NA,nmax)
 
 n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
-p0=0.1
+p0=0.9
 sim_idx=1
 
 data.type = 3
@@ -271,14 +277,14 @@ if(data.type==3){
 # if(W1.W2.case==1){W1.V2=T;W2.V2=F}
 # if(W1.W2.case==2){W1.V2=F;W2.V2=T}
 # if(W1.W2.case==3){W1.V2=T;W2.V2=T}
-W1.V2=T;W2.V2=T
+W1.V2=T;W2.V2=F
 inp.version = 1
 
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
 par(mfrow=c(length(to_see_list),1))
 for(p0 in p0_list){
-# for(p0 in c(0.9)){
+# for(p0 in c(0.1)){
   g_save_list = list()
   for(to_see in to_see_list){
     # Define save matrix for current setting------------------------------------------------------------------------------------------
@@ -299,24 +305,53 @@ for(p0 in p0_list){
       tryCatch(
         {
           if(to_see == 'wME'){
-            f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
+            #####
+            # set.seed(sim_idx)
+            # x1 = runif(n,0,1)
+            # X=cbind(1,x1*Xmul-X_shit)
+            #####
+            if(W1.V2&W2.V2){
+              f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
+            }
+            else{
+              f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
+            }
+            
             load(file=f_name)
             g.est=colMeans(NQR_res$g_trace)
             Knots = NQR_res$Knots
-            alpha.est=colMeans(NQR_res$alpha_trace)
-            X.est=colMeans(NQR_res$X_trace)
-            mux.est=mean(NQR_res$mux_trace)
+            # alpha.est=colMeans(NQR_res$alpha_trace)
+            # X.est=colMeans(NQR_res$X_trace)
+            # mux.est=mean(NQR_res$mux_trace)
+            # alpha_save[sim_idx,] = alpha.est
             sigma2_11.est=mean(NQR_res$sigma2_11_trace)
             sigma2_22.est=mean(NQR_res$sigma2_22_trace)
             sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
+            #####
+            sigma2_11_save[sim_idx]=sigma2_11.est
+            sigma2_22_save[sim_idx]=sigma2_22.est
             
+            set.seed(sim_idx)
+            x1 = runif(n,0,1)
+            X_save2[sim_idx,] = x1*10-5
+            
+            {if(is.null(dim(NQR_res$X_trace)[2])){
+              X_save[sim_idx,] = NQR_res$X_trace
+            }
+            else{
+              X_save[sim_idx,] = colMeans(NQR_res$X_trace)
+            }}
+            
+            #####
             g_save[sim_idx,]=g.est
             accept_g_save[sim_idx]=NQR_res$g_accept_ratio
             HPD_save[sim_idx] = HPD_ratio(NQR_res$g_trace)
+            
+            
           }
           
           if(to_see == 'woME'){
-            f_name = sprintf('../debugging/NQR_data%s_%swoME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+              f_name = sprintf('../debugging/NQR_data%s_%swoME_%s_%s.RData',data.type,is.t,p0,sim_idx)  
             load(file = f_name)
             
             g.est = colMeans(NQR_wo_ME_res$g_trace) 
@@ -330,7 +365,15 @@ for(p0 in p0_list){
           
           
           if(to_see == 'W2'){
-            f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%sW2_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx) 
+            if(W1.V2&W2.V2){
+              f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%sW2_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)   
+            }
+            if(W2.V2==FALSE){
+              f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)   
+            }
+            else{
+              f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%sW2_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)   
+            }
             load(file = f_name)
             
             g.est = colMeans(NQR_W2_ME_res$g_trace) 
@@ -378,14 +421,14 @@ for(p0 in p0_list){
         error = function(e) cat(sim_idx,'of',p0,'is not done yet. \n'))
     }
     toc()
-    
+
     # Calculate the summary statistics from iterated result------------------------------------------------------------------------------------------
     nconverge_idx=which(accept_g_save<0.01)
     # nconverge_idx = nmax+1
     if(length(nconverge_idx)==0){
       nconverge_idx = nmax+1
     }
-    if((to_see=='W2')&(length(nconverge_idx)>200)){
+    if((to_see=='W2')){
       nconverge_idx = nmax+1
     }
     m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type)
@@ -398,15 +441,85 @@ for(p0 in p0_list){
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['mean']] = mean(MSE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['sd']] = sd(MSE_save[-nconverge_idx],na.rm = T)
   }
-  m.boxplo.v2(g_save_list,p0,data.type,save = F)
+  m.boxplo.v2(g_save_list,p0,data.type,save = T)
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
 
 
+# Check X.true & X.est for 'wME'------------------------------------------------------------------------------------------
+sim_idx = 1
+X.true = X_save2[sim_idx,]
+X.est = X_save[sim_idx,]
+plot(X.true,X.est,main=sprintf('X.true Vs X.est Ver%s',inp.version));abline(0,1)
 
-# 
-# hist(ISE_save)
-# max(ISE_save,na.rm = T)
-# which(ISE_save>1000)
-# summary(accept_g_save)
+
+# Check plot of X & W1 or X & W2------------------------------------------------------------------------------------------
+
+make_data = function(X,W1.v2=F,W2.v2=F,version=1){
+  set.seed(sim_idx)
+  delta1=rnorm(n,0,sd=sqrt(sigma2_11))
+  delta2=rnorm(n,0,sd=sqrt(sigma2_22))
+  
+  W1=X%*%alpha+delta1
+  W2=X[,2]+delta2
+  if(W1.v2){
+    if(version==1){
+      tmp.seed=8
+      set.seed(tmp.seed)
+      a = runif(1,1/15,1/10)
+      b = runif(1,1/6,1/3)
+      d = runif(1,-5,5)
+      c = runif(1,3,6)
+      W1 = (a*X[,2]**3 + b*X[,2]**2 + d*X[,2] -c)*1/4 + delta1
+    }
+    if(version==2){
+      tmp.seed=5
+      set.seed(tmp.seed) #1, 9
+      a = runif(1,min = 3,max = 5)
+      b = -1*runif(1,1/10,1/5)
+      c = runif(1,-3,3)
+      W1 = b*(X[,2]-a)**2+c*X[,2]+delta1
+    }
+    if(version==3){
+      W1 = 1/5*X[,1] + 9/5*X[,2] + 1/5*(X[,2])**2 + delta1
+    }
+  }
+  if(W2.v2){
+    if(version==1){
+      tmp.seed=8
+      set.seed(tmp.seed) #
+      a = runif(1,min = 9.25,max = 9.35)
+      b = runif(1,9.5,10.5)
+      c = -runif(1,20.5,21.5)
+      W2 = a*log(X[,2]+b) + c+ delta2
+    }
+    
+    if(version==2){
+      tmp.seed=8
+      set.seed(tmp.seed) #1, 8
+      a = runif(1,min = 5,max = 15)
+      b = runif(1,5,25)
+      tmp = a*log(X[,2]+b) + delta2
+      c = min(tmp)+ifelse(tmp.seed==1,6,8)
+      W2 = tmp-c
+    }
+    if(version==3){
+      W2 = -21 + 9.3*log(X[,2]+10) + delta2
+    }
+  }
+  
+  return(list('W1'=W1, 'W2'=W2))
+}
+
+
+
+
+set.seed(1)
+x1 = runif(n,0,1)
+X=cbind(1,x1*Xmul-X_shit)
+inp.version = 3
+W_list = make_data(X,W1.V2,W2.V2,version = inp.version)
+plot(X[,2],W_list$W1,main = sprintf('X = a0 + a1*W2 + e in Ver%s',inp.version));abline(lm(W_list$W1~X[,2])$coeff)
+plot(X[,2],W_list$W2,main = sprintf('X = W1 + e in Ver%s',inp.version));abline(0,1)
+

@@ -49,27 +49,51 @@ make_data = function(X,W1.v2=F,W2.v2=F,version=1){
   W1=X%*%alpha+delta1
   W2=X[,2]+delta2
   if(W1.v2){
-    if(version==1){tmp.seed=5}
-    if(version==2){tmp.seed=5}
-    
-    set.seed(tmp.seed) #1, 9
-    a = runif(1,min = 3,max = 5)
-    b = -1*runif(1,1/10,1/5)
-    c = runif(1,-3,3)
-    W1 = b*(X[,2]-a)**2+c*X[,2]+delta1
+    if(version==1){
+      tmp.seed=8
+      set.seed(tmp.seed)
+      a = runif(1,1/15,1/10)
+      b = runif(1,1/6,1/3)
+      d = runif(1,-5,5)
+      c = runif(1,3,6)
+      W1 = (a*X[,2]**3 + b*X[,2]**2 + d*X[,2] -c)*1/4 + delta1
+      }
+    if(version==2){
+      tmp.seed=5
+      set.seed(tmp.seed) #1, 9
+      a = runif(1,min = 3,max = 5)
+      b = -1*runif(1,1/10,1/5)
+      c = runif(1,-3,3)
+      W1 = b*(X[,2]-a)**2+c*X[,2]+delta1
+    }
+    if(version==3){
+      W1 = 1/5*X[,1] + 9/5*X[,2] + 1/5*(X[,2])**2 + delta1
+    }
   }
   if(W2.v2){
-    if(version==1){tmp.seed=1}
-    if(version==2){tmp.seed=8}
+    if(version==1){
+      tmp.seed=8
+      set.seed(tmp.seed) #
+      a = runif(1,min = 9.25,max = 9.35)
+      b = runif(1,9.5,10.5)
+      c = -runif(1,20.5,21.5)
+      W2 = a*log(X[,2]+b) + c+ delta2
+      }
     
-    set.seed(tmp.seed) #1, 8
-    a = runif(1,min = 5,max = 15)
-    b = runif(1,5,25)
-    tmp = a*log(X[,2]+b) + delta2
-    c = min(tmp)+ifelse(tmp.seed==1,6,8)
-    W2 = tmp-c
+    if(version==2){
+      tmp.seed=8
+      set.seed(tmp.seed) #1, 8
+      a = runif(1,min = 5,max = 15)
+      b = runif(1,5,25)
+      tmp = a*log(X[,2]+b) + delta2
+      c = min(tmp)+ifelse(tmp.seed==1,6,8)
+      W2 = tmp-c
+    }
+    if(version==3){
+      W2 = -21 + 9.3*log(X[,2]+10) + delta2
+    }
   }
-  
+
   return(list('W1'=W1, 'W2'=W2))
 }
 
@@ -172,14 +196,14 @@ sim_idx = 15
 p0 = 0.1
 is.t=''
 data.type=3
-W1.V2=T;W2.V2=T
+W1.V2=T;W2.V2=F
 inp.version = 2
 # Loop start #############################################################################################
 # plot(X[,2],W_list$W2);abline(0,1)
 # plot(X[,2],W_list$W1);abline(lm(W_list$W1~X[,2])$coeff)
 for(sim_idx in start.idx:end.idx){
   for(p0 in p0_list){
-    for(inp.version in c(1,2)){
+    for(inp.version in c(1)){ 
       # if(W1.W2.case==1){W1.V2=T;W2.V2=F}
       # if(W1.W2.case==2){W1.V2=F;W2.V2=T}
       # if(W1.W2.case==3){W1.V2=T;W2.V2=T}
@@ -208,9 +232,12 @@ for(sim_idx in start.idx:end.idx){
       tryCatch(
         {
           ## Modeling for each type of data #############################################################################################
-          f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
+          f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
           if(!file.exists(file=f_name)){
             NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            NQR_res$X_trace = colMeans(NQR_res$X_trace)
+            NQR_res$mux_trace = mean(NQR_res$mux_trace)
+            NQR_res$alpha_trace = colMeans(NQR_res$alpha_trace)
             save(NQR_res, file=f_name)
           }
           
@@ -220,11 +247,12 @@ for(sim_idx in start.idx:end.idx){
           #   save(NQR_wo_ME_res, file=f_name)
           # }
           
-          
-          f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%sW2_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx) 
-          if(!file.exists(file=f_name)){
-            NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-            save(NQR_W2_ME_res, file=f_name)
+          if(W2.V2==T){
+            f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%sW2_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx) 
+            if(!file.exists(file=f_name)){
+              NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+              save(NQR_W2_ME_res, file=f_name)
+              }
           }
           # if(file.exists(file=f_name)){
           #   load(f_name)

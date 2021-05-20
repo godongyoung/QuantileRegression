@@ -9,6 +9,7 @@ library(bayesQR)
 library(SuppDists)
 library(statmod)
 library(splines)
+library(quantreg)
 
 # Function --------------------------------------------------------------------------------
 

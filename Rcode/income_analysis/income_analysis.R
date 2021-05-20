@@ -5,7 +5,19 @@ source('fn_wo_ME.R')
 source('fn_w_ME.R')
 source('./income_analysis/income_preprocess.R')
 
-data = load_data()
+
+
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+out.const = as.numeric(args[1])
+W2.const = as.numeric(args[2])
+print(sprintf("out.const:%s / W2.const:%s",out.const,W2.const))
+
+
+out.const = 0.001
+W2.const = 1000
+
+data = load_data( out.const = out.const,W2.const = W2.const )
 W1 = data$W1
 W2 = data$W2
 y = data$y
@@ -14,14 +26,15 @@ log_W2 = data$log_W2
 log_y = data$log_y
 
 W1.const = data$W1.const
-y.const = data$W2.const
-W2.const = data$y.const
+W2.const = data$W2.const
+y.const = data$y.const
+out.const = data$out.const
 
 Knots.driect = data$Knots.driect
 mul_c = 1
 
 p0=0.1
-p0_list = c(0.1,0.25,0.5,0.75,0.9)
+p0_list = c(0.1,0.25,0.5,0.75,0.9,0.95,0.99)
 for(sim_idx in 1:10){
   for(p0 in p0_list){
     # f_name = sprintf('../debugging/income_naive_%s_%s.RData',p0,sim_idx)
@@ -31,15 +44,17 @@ for(sim_idx in 1:10){
     #   save(NQR_res, file=f_name)
     # }
     
-    f_name = sprintf('../debugging/income_log_y_%s_%s.RData',p0,sim_idx)
+    # f_name = sprintf('../debugging/income_log_y_%s_%s.RData',p0,sim_idx)
+    f_name = sprintf('../debugging/income_log_y_out%s_W2%s_%s_%s.RData',out.const,W2.const,p0,sim_idx)
     if(!file.exists(file=f_name)){
       NQR_Ylog_res = NQR_w_MME(log_y,W1,W2,p0,inp.min = min(W2),inp.max = max(W2),multiply_c = mul_c,inp.version = 1,N.Knots = 30, Knots.direct = Knots.driect)
       NQR_Ylog_res$X_trace = colMeans(NQR_Ylog_res$X_trace)
       save(NQR_Ylog_res, file=f_name)
-      
     }
     
-    f_name = sprintf('../debugging/income_log_log_%s_%s.RData',p0,sim_idx)
+    
+    # f_name = sprintf('../debugging/income_log_log_%s_%s.RData',p0,sim_idx)
+    f_name = sprintf('../debugging/income_log_log_out%s_%s_%s_%s.RData',out.const,W2.const,p0,sim_idx)
     if(!file.exists(file=f_name)){
       NQR_YLog_WLog_res = NQR_w_MME(log_y,log_W1,log_W2,p0,inp.min = min(log_W2),inp.max = max(log_W2),multiply_c = mul_c,inp.version = 1,N.Knots = 30)
       NQR_YLog_WLog_res$X_trace = colMeans(NQR_YLog_WLog_res$X_trace)
