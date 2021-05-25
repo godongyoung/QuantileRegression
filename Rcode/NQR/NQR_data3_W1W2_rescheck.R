@@ -178,7 +178,8 @@ gg_color_hue <- function(n) {
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-m.boxplo.v2=function(save_data_list,p0,data.type,save=F){
+save_data_list = g_save_list
+m.boxplo.v2=function(save_data_list,p0,data.type,save=T){
   if(W1.V2&W2.V2){
     f_name = sprintf('../Figure/data%s_W1W2_%s.png',data.type,p0)
   }
@@ -215,14 +216,13 @@ m.boxplo.v2=function(save_data_list,p0,data.type,save=F){
     # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
     # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
   }
-  # legend(4, 2.8, legend=c('woME','wME','W2'),
-  #        col=2, lty=c('twodash','longdash','dotdash'), cex=1,lwd=2)
+  # legend(1.5, inp.ylim[2]*2.8/3, legend=c('woME','wME','W2'),
+  #        col=c(gg_color_hue(3)[1],gg_color_hue(3)[2],gg_color_hue(3)[3]), lty=c('twodash','longdash','dotdash'), cex=1.6,lwd=2)
   if(save){
     dev.off()
   }
   
 }
-
 
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
@@ -283,8 +283,8 @@ inp.version = 1
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
 par(mfrow=c(length(to_see_list),1))
-for(p0 in p0_list){
-# for(p0 in c(0.1)){
+# for(p0 in p0_list){
+for(p0 in c(0.9)){
   g_save_list = list()
   for(to_see in to_see_list){
     # Define save matrix for current setting------------------------------------------------------------------------------------------
@@ -441,11 +441,18 @@ for(p0 in p0_list){
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['mean']] = mean(MSE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['sd']] = sd(MSE_save[-nconverge_idx],na.rm = T)
   }
-  m.boxplo.v2(g_save_list,p0,data.type,save = T)
+  # m.boxplo.v2(g_save_list,p0,data.type,save = F)
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
 
+# For saving plot with legend only
+# png( '../Figure/figure_legend.png', width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 13)  
+# par(mfrow = c(1,1), mar = c(4,4,1,4))
+# plot(NA,NA,xlim=c(-5,5),ylim=inp.ylim,axes=FALSE,ann=FALSE)
+# legend(-5.3, inp.ylim[2], legend=c('woME','wME','W2'),
+#        col=c(gg_color_hue(3)[1],gg_color_hue(3)[2],gg_color_hue(3)[3]), lty=c('twodash','longdash','dotdash'), cex=2,lwd=2)
+# dev.off()
 
 # Check X.true & X.est for 'wME'------------------------------------------------------------------------------------------
 sim_idx = 1
