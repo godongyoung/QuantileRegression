@@ -677,7 +677,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
     term2 = -0.5 * lambda.f * (g.t) %*% K %*% t(g.t)
     term3 = dgamma(x = lambda.f,shape = labmda.a, scale = labmda.b, log = T)
     term4 = dlnorm(x = lambda.b, meanlog = log(lambda.f), sdlog = sqrt(jump_lambda),log = T)  
-    return (term1 + term2 + term3)
+    return (term1 + term2 + term3 + term4)
   }
   
   log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
@@ -711,12 +711,12 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
   # tau.i=seq(from = inp.min,to = inp.max,length.out = N)
-  if(all(is.na(Knots.direct))){
+  {if(all(is.na(Knots.direct))){
     tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
   }
   else{
     tau.i = Knots.direct
-  }
+  }}
   
   
   hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
@@ -791,6 +791,8 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   #Gamma for lambda
   labmda.b=0.1/lambda0
   labmda.a=lambda0/labmda.b
+  # labmda.a=0.1/lambda0
+  # labmda.b=lambda0/labmda.a
   
   aaa=0.01
   #IG for sigma2_xx
@@ -942,15 +944,8 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
 }
 
 
-NQR_w_SME=function(y,W2,p0,is.plot=F){
-  print('Current version is wo alpha, & fix sigma2_22 for simplification')
-  n=length(y)
-  inp.version=3
-  multiply_c=1
-  N=30
-  
+NQR_w_SME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30,Knots.direct=NA){
   # Function --------------------------------------------------------------------------------
-  
   log.likeli.g=function(g.t, lambda.t,X.1t){
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
     ui=y-y.est
@@ -960,35 +955,51 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
     return(term1+term2)
   }
   
+  
   log.likeli.l=function(lambda.f,lambda.b,g.t){
     term1 = (N-2)/2*log(lambda.f) 
     term2 = -0.5 * lambda.f * (g.t) %*% K %*% t(g.t)
     term3 = dgamma(x = lambda.f,shape = labmda.a, scale = labmda.b, log = T)
     term4 = dlnorm(x = lambda.b, meanlog = log(lambda.f), sdlog = sqrt(jump_lambda),log = T)  
-    return (term1 + term2 + term3)
+    return (term1 + term2 + term3 + term4)
   }
   
-  log.likeli.x=function(X.1t,lambda.t){ ### This can be changed with individual updates!
+  log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
-    ui=y-y.est
+    ui = y-y.est
     term1 = -sum(qloss(ui,p0))
     term3 = sum(dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T))
     term4 = sum(dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T))
-    return (sum(term1 + term3 + term4))
+    return (term1 + term3 + term4)
   }
   
+  log.likeli.x.i=function(X.1t){ ### This can be changed with individual updates!
+    y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
+    ui=y-y.est
+    term1 = -(qloss(ui,p0))
+    term3 = (dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T))
+    term4 = (dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T))
+    return (term1 + term3 + term4)
+  }
   # Set Defaults --------------------------------------------------------------------------------
-  
   niter    <- 30000*multiply_c
   nburn    <- 5000*multiply_c
   nthin    <- 5*multiply_c
   nprint   <- 10000*multiply_c
   nmcmc=(niter-nburn)/nthin
   
+  
   n = length(y)
-  inp.min = min(X[,2]); inp.max = max(X[,2])
+  N=N.Knots
   # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
-  tau.i=seq(from = inp.min,to = inp.max,length.out = N)
+  # tau.i=seq(from = inp.min,to = inp.max,length.out = N)
+  {if(all(is.na(Knots.direct))){
+    tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
+  }
+    else{
+      tau.i = Knots.direct
+    }}
+  
   
   hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
   # Make Q matrix
@@ -1023,20 +1034,30 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
   mus=ev$values[1:(N-2)]
   
   # initial values --------------------------------------------------------------------------------
-  alpha.t=rnorm(2,0,1)
   sigma2_xx.t=10#runif(1)
   sigma2_22.t=10#runif(1)
   mux.t=rnorm(1,0,sqrt(100))
+  # X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
   X.1t=W2
-  # X.1t=rtruncnorm(n = n,a = 0,b = 10,mean=5,sd=2)
+  # X.1t=(cbind(1,W1)%*%t(alpha.t) +W2)/2
+  # X.1t=rnorm(n,0,100)
   X.t=cbind(1,X.1t)
   
   BQR_res = mBayesQR(y,X.t,p0)
   beta.est=colMeans(BQR_res$beta_trace)
+  if (sum(is.nan(beta.est))>0){ # for unknown error
+    QR_res=mQR(y,X.t,p0)
+    beta.est=QR_res$beta_est
+  }
+  
   g0=rep(0,N)
   for(param.idx in 1:length(beta.est)){
     g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0
   }
+  
+  # For starting with NCS
+  fit.ns <- lm(y~ ns(x = X.1t, knots = tau.i[-c(1,length(tau.i))]) )
+  g0 = predict(fit.ns, data.frame(X.1t=tau.i))
   
   
   msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
@@ -1045,28 +1066,15 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
   g.t=matrix(g0,nrow = 1)
   lambda.t=lambda0
   
-  
-  # Check with NQR --------------------------------------------------------------------------------
-  if(is.plot){
-    plot(X[,2],y, main="True Data + BayesQR init")
-    X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-    # for(p0 in c(.1,.25,.5,.75,.9)){
-    #   NQR_res=NQR(y,X,p0)
-    #   g.est=colMeans(NQR_res$g_trace)
-    #   lambda.est=mean(NQR_res$lambda_trace)
-    #   mspline=spline(x = NQR_res$Knots,y = g.est,xout = X_range)
-    # 
-    #   points(X_range,mspline$y,type = 'l')
-    # }
-    points(tau.i,g0,type = 'l')
-  }
   # Set Priors --------------------------------------------------------------------------------
   
   #Gamma for lambda
   labmda.b=0.1/lambda0
   labmda.a=lambda0/labmda.b
+  # labmda.a=0.1/lambda0
+  # labmda.b=lambda0/labmda.a
   
-  aaa=0.1
+  aaa=0.01
   #IG for sigma2_xx
   prior_ax=aaa;prior_bx=aaa
   #IG for sigma2_22
@@ -1075,7 +1083,6 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
   #N for mu_x
   var_param=100
   pr_mean_mux=0;pr_var_mux=var_param
-  
   
   # Make trace --------------------------------------------------------------------------------
   g_trace=matrix(NA,ncol=N,nrow=nmcmc)
@@ -1087,31 +1094,15 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
   
   # Set jumping rules --------------------------------------------------------------------------------
   
-  pr.sigma.g=0.01
-  jump_g=pr.sigma.g^2*diag(N)
-  jump_lambda = 0.1
-  pr.sigma.x=0.08
-  jump_x=pr.sigma.x^2*diag(N)
+  sigma.g=0.01
+  sigma.x=0.1
+  jump_g=sigma.g^2*diag(N)
+  jump_lambda = 1
+  jump_x=sigma.x^2*diag(n)
   
   accept_g = 0
   accept_l = 0
   accept_x = 0
-  
-  
-  
-  ##### Debugging part
-  sigma2_22.t=1
-  
-  g.true=smooth.y(X[,2],y,tau.i,version=2)
-  # ui=y-smooth.y(tau.i,g.t,X.t[,2],version=inp.version)
-  # term1 = -sum(qloss(ui,p0));term1
-  # 
-  # ui=y-smooth.y(tau.i,g.true,X.t[,2],version=inp.version)
-  # term1 = -sum(qloss(ui,p0));term1
-  # 
-  # plot(X[,2],y)
-  # points(tau.i,smooth.y(tau.i,g.true,tau.i,version=inp.version),type = 'l')
-  ###########Debugging part end
   
   # iter start --------------------------------------------------------------------------------
   tic()
@@ -1139,27 +1130,23 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
     }
     
     #sample X.1t-----------------------------------------------------------------
-    ### Update at all X1i.t at once
-    # X.1.star = rmvnorm(n = 1,mu = X.1t,sigma = jump_x)
-    X.1.star = rnorm(n = n,mean = X.1t,sd = pr.sigma.x)
-    log_accept.r = log.likeli.x(X.1.star) - log.likeli.x(X.1t)
-    log.u = log(runif(1))
-    if(log.u < log_accept.r){
-      X.1t = X.1.star
-      X.t=cbind(1,X.1t)
-      accept_x = accept_x + 1
-    }
-    ### Individual update
-    # for(idx in 1:n){
-    #   X.1.star.each = rnorm(n = 1,mean = X.1t[idx],sd = pr.sigma.x)
-    #   log_accept.r = log.likeli.x.each(X.1.star.each,idx) - log.likeli.x.each(X.1t[idx],idx)
-    #   log.u = log(runif(1))
-    #   if(log.u < log_accept.r){
-    #     X.1t[idx] = X.1.star.each
-    #     accept_x = accept_x + 1
-    #   }
+    ### This can be changed with individual updates!
+    # X.1.star = t(rmvnorm(n = 1,mu = X.1t,sigma = jump_x))
+    # X.1.star = rnorm(n = n,mean = X.1t,sd = sigma.x)
+    # log_accept.r = log.likeli.x(X.1.star) - log.likeli.x(X.1t)
+    # log.u = log(runif(1))
+    # if(log.u < log_accept.r){
+    #   X.1t = X.1.star
+    #   X.t=cbind(1,X.1t)
+    #   accept_x = accept_x + 1
     # }
-    # X.t=cbind(1,X.1t)
+    # Individual version
+    X.1.star = rnorm(n = n,mean = X.1t,sd = sigma.x)
+    log_accept.r.vec = log.likeli.x.i(X.1.star) - log.likeli.x.i(X.1t)
+    log.u.vec = log(runif(n))
+    X.1t[log.u.vec < log_accept.r.vec] = X.1.star[log.u.vec < log_accept.r.vec]
+    accept_x = accept_x + sum(log.u.vec < log_accept.r.vec)
+    X.t=cbind(1,X.1t)
     
     #sample sigma2_xx-----------------------------------------------------------------
     post_ax=0.5*n+prior_ax
@@ -1169,20 +1156,17 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
     #cat('accept2\n')
     
     #sample sigma2_22-----------------------------------------------------------------
-    # post_a2=0.5*n+prior_a2
-    # post_b2=prior_b2+1/2*sum((W2-X.1t)^2)
-    # sigma2_22.t=rinvgamma(1,post_a2,post_b2)
-    # stopifnot(sigma2_22.t>0)
+    post_a2=0.5*n+prior_a2
+    post_b2=prior_b2+1/2*sum((W2-X.1t)^2)
+    sigma2_22.t=rinvgamma(1,post_a2,post_b2)
+    stopifnot(sigma2_22.t>0)
     #cat('accept4\n')
     
     #sample mux-----------------------------------------------------------------
-    post_V_mux=1/(n/sigma2_xx.t+1/pr_var_mux)
-    post_M_mux=(sum(X.1t)/sigma2_xx.t+pr_mean_mux/pr_var_mux)/(n/sigma2_xx.t+1/pr_var_mux)
-    mux.t=rnorm(n = 1,mean = post_M_mux,sd = sqrt(post_V_mux))
+    post_V_mux = 1/(n/sigma2_xx.t+1/pr_var_mux)
+    post_M_mux = post_V_mux * (sum(X.1t)/sigma2_xx.t+pr_mean_mux/pr_var_mux)
+    mux.t = rnorm(n = 1,mean = post_M_mux,sd = sqrt(post_V_mux))
     #cat('accept5\n')
-    
-    #cat('------------------------------------------------------------------\n')
-    
     
     # Save samples in each thin-----------------------------------------------------------------
     if((iter > nburn) & (iter %% nthin== 0) ){
@@ -1193,51 +1177,296 @@ NQR_w_SME=function(y,W2,p0,is.plot=F){
       sigma2_22_trace[thinned_idx]=sigma2_22.t
       mux_trace[thinned_idx]=mux.t
       X_trace[thinned_idx,] = X.1t
-      
-      
-      if(is.plot){
-        #### Plotting ###############################
-        if((iter > nburn) & (iter %% (nthin*1000)== 0) ){
-          par(mfrow=c(3,2))
-          plot(colMeans(X_trace,na.rm = T),X[,2],main='X.est Vs X');abline(0,1)
-          
-          idx=100
-          ts.plot(X_trace[,idx],main='trace for x_100')
-          abline(h=X[idx,2])
-          
-          ts.plot(g_trace[,1],main='trace for g_1')
-          
-          # plot(colMeans(alpha_trace)[1]+colMeans(alpha_trace)[2]*colMeans(X_trace),W1);abline(0,1)
-          plot(colMeans(X_trace,na.rm = T),W2,main='X.est vs W2');abline(0,1)
-          
-          # ts.plot(mux_trace)
-          
-          g.est=colMeans(g_trace,na.rm = T)
-          mspline=spline(x = tau.i,y = g.est,xout = tau.i)
-          plot(X[,2],y,main='g.est in X')
-          points(tau.i,mspline$y,type = 'l')    
-          
-          plot(colMeans(X_trace,na.rm = T),y,main='g.est in X.est')
-          points(tau.i,mspline$y,type = 'l')    
-          abline(v=tau.i)
-          par(mfrow=c(1,1))
-          #### Plotting ###############################
-        }        
-      }
-
     }
   }
   toc()
+  
+  
   res_list=list()
   res_list[['g_trace']]=g_trace
   res_list[['lambda_trace']]=lambda_trace
-  res_list[['sigma2_xx_trace']]=sigma2_xx_trace
-  res_list[['mux_trace']]=mux_trace
-  res_list[['X_trace']]=X_trace
-  res_list[['l_accept_ratio']]=accept_l/niter
   res_list[['g_accept_ratio']]=accept_g/niter
-  res_list[['x_accept_ratio']]=accept_x/niter
+  res_list[['l_accept_ratio']]=accept_l/niter
+  res_list[['X_trace']]=X_trace
+  res_list[['x_accept_ratio']]=accept_x/(niter*n)
+  res_list[['mux_trace']]=mux_trace
+  res_list[['sigma2_22_trace']]=sigma2_22_trace
+  res_list[['sigma2_xx_trace']]=sigma2_xx_trace
   res_list[['Knots']]=tau.i
+  res_list[['inp.version']]=inp.version
+  return(res_list)
+}
+
+NQR_w_MME_cvar=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30,Knots.direct=NA){
+  # Function --------------------------------------------------------------------------------
+  log.likeli.g=function(g.t, lambda.t,X.1t){
+    y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
+    ui=y-y.est
+    term1 = -sum(qloss(ui,p0))
+    
+    term2 = -0.5 * lambda.t * (g.t) %*% K %*% t(g.t)
+    return(term1+term2)
+  }
+  
+  
+  log.likeli.l=function(lambda.f,lambda.b,g.t){
+    term1 = (N-2)/2*log(lambda.f) 
+    term2 = -0.5 * lambda.f * (g.t) %*% K %*% t(g.t)
+    term3 = dgamma(x = lambda.f,shape = labmda.a, scale = labmda.b, log = T)
+    term4 = dlnorm(x = lambda.b, meanlog = log(lambda.f), sdlog = sqrt(jump_lambda),log = T)  
+    return (term1 + term2 + term3 + term4)
+  }
+  
+  log.likeli.x=function(X.1t){ ### This can be changed with individual updates!
+    y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
+    ui = y-y.est
+    term1 = -sum(qloss(ui,p0))
+    term2 = sum(dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_22.t),log = T))
+    term3 = sum(dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T))
+    term4 = sum(dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T))
+    return (term1 + term2 + term3 + term4)
+  }
+  
+  log.likeli.x.i=function(X.1t){ ### This can be changed with individual updates!
+    y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
+    ui=y-y.est
+    term1 = -(qloss(ui,p0))
+    term2 = (dnorm(W1,mean = alpha.t[1]+alpha.t[2]*X.1t,sd = sqrt(sigma2_22.t),log = T))
+    term3 = (dnorm(W2,mean = X.1t,sd = sqrt(sigma2_22.t),log = T))
+    term4 = (dnorm(X.1t,mean = mux.t,sd = sqrt(sigma2_xx.t),log = T))
+    return (term1 + term2 + term3 + term4)
+  }
+  # Set Defaults --------------------------------------------------------------------------------
+  niter    <- 30000*multiply_c
+  nburn    <- 5000*multiply_c
+  nthin    <- 5*multiply_c
+  nprint   <- 10000*multiply_c
+  nmcmc=(niter-nburn)/nthin
+  
+  
+  n = length(y)
+  N=N.Knots
+  # tau.i=seq(from = min(X[,2]),to = max(X[,2]),length.out = N)
+  # tau.i=seq(from = inp.min,to = inp.max,length.out = N)
+  {if(all(is.na(Knots.direct))){
+    tau.i=seq(from = inp.min,to = inp.max,length.out = N)  
+  }
+    else{
+      tau.i = Knots.direct
+    }}
+  
+  
+  hi=diff(tau.i) # because we define tau.i as equally spaced, hi has same value for all i.
+  # Make Q matrix
+  Q=matrix(0,nrow=N,ncol=(N-2))
+  for(j in seq(2,N-2)){
+    Q[(j-1),j] = 1/hi[(j-1)]
+    Q[j,j] = -1/hi[(j-1)] - 1/hi[j]
+    Q[(j+1),j] = 1/hi[j]
+  }
+  ## This is suspectable!!!
+  Q[1,1] = -1/hi[(j-1)] - 1/hi[j]
+  Q[2,1] = 1/hi[j]
+  
+  # Make R matrix
+  R=matrix(0,nrow=(N-2),ncol=(N-2))
+  for(i in seq(2,N-2)){
+    R[i,i] = (hi[i-1] + hi[i])/3
+    if(i<(N-2)){
+      R[(i+1),i] = hi[i]/6
+      R[i,(i+1)] = hi[i]/6
+    }
+  }
+  ## This is suspectable!!!
+  R[1,1] = (hi[i-1] + hi[i])/3
+  R[1,2] = hi[i]/6
+  R[2,1] = hi[i]/6
+  
+  # Make K matrix
+  K=Q%*%solve(R)%*%t(Q)
+  stopifnot(N-2==qr(K)$rank)
+  ev=eigen(K)
+  mus=ev$values[1:(N-2)]
+  
+  # initial values --------------------------------------------------------------------------------
+  alpha.t=rmvnorm(1,c(0,0),diag(2))
+  sigma2_xx.t=10#runif(1)
+  sigma2_22.t=10#runif(1)
+  mux.t=rnorm(1,0,sqrt(100))
+  # X.1t=cbind(1,W1)%*%t(alpha.t) #Let's start with 21, obs data
+  X.1t=W2
+  # X.1t=(cbind(1,W1)%*%t(alpha.t) +W2)/2
+  # X.1t=rnorm(n,0,100)
+  X.t=cbind(1,X.1t)
+  
+  BQR_res = mBayesQR(y,X.t,p0)
+  beta.est=colMeans(BQR_res$beta_trace)
+  if (sum(is.nan(beta.est))>0){ # for unknown error
+    QR_res=mQR(y,X.t,p0)
+    beta.est=QR_res$beta_est
+  }
+  
+  g0=rep(0,N)
+  for(param.idx in 1:length(beta.est)){
+    g0 = g0 + beta.est[param.idx]*tau.i^(param.idx-1) # for quadratic g0
+  }
+  
+  # For starting with NCS
+  fit.ns <- lm(y~ ns(x = X.1t, knots = tau.i[-c(1,length(tau.i))]) )
+  g0 = predict(fit.ns, data.frame(X.1t=tau.i))
+  
+  
+  msmooth.spline=smooth.spline(x = tau.i,y = g0,control.spar = list('maxit'=1,'trace'=F))
+  lambda0=msmooth.spline$lambda
+  
+  g.t=matrix(g0,nrow = 1)
+  lambda.t=lambda0
+  
+  # Set Priors --------------------------------------------------------------------------------
+  
+  #Gamma for lambda
+  labmda.b=0.1/lambda0
+  labmda.a=lambda0/labmda.b
+  # labmda.a=0.1/lambda0
+  # labmda.b=lambda0/labmda.a
+  
+  aaa=0.01
+  #IG for sigma2_xx
+  prior_ax=aaa;prior_bx=aaa
+  #IG for sigma2_22
+  prior_a2=aaa;prior_b2=aaa
+  
+  #N for mu_x
+  var_param=100
+  pr_mean_mux=0;pr_var_mux=var_param
+  
+  #N for alpha
+  pr_mean_alpha=rep(0,2)
+  pr_var_alpha=var_param*diag(2)
+  
+  # Make trace --------------------------------------------------------------------------------
+  g_trace=matrix(NA,ncol=N,nrow=nmcmc)
+  lambda_trace=rep(NA,nmcmc)
+  sigma2_xx_trace=rep(NA,nmcmc)
+  sigma2_22_trace=rep(NA,nmcmc)
+  mux_trace=rep(NA,nmcmc)
+  alpha_trace=matrix(NA,nrow=nmcmc,ncol=2)
+  X_trace=matrix(NA,nrow=nmcmc,ncol=n)   
+  
+  # Set jumping rules --------------------------------------------------------------------------------
+  
+  sigma.g=0.01
+  sigma.x=0.1
+  jump_g=sigma.g^2*diag(N)
+  jump_lambda = 1
+  jump_x=sigma.x^2*diag(n)
+  
+  accept_g = 0
+  accept_l = 0
+  accept_x = 0
+  
+  # iter start --------------------------------------------------------------------------------
+  tic()
+  for(iter in 1:niter){
+    if(iter%%nprint==1){cat(iter,'th iter is going\n')}
+    # Sample g-----------------------------------------------------------------
+    g.star = rmvnorm(n = 1,mu = g.t,sigma = jump_g)
+    log_accept.r = log.likeli.g(g.star,lambda.t,X.1t = X.1t) - log.likeli.g(g.t,lambda.t,X.1t = X.1t)
+    
+    log.u = log(runif(1))
+    if(log.u < log_accept.r){
+      g.t = g.star
+      accept_g = accept_g + 1
+    }
+    
+    # Sample lambda-----------------------------------------------------------------
+    # lamda.star = exp(rnorm(1,mean = log(lambda.t),sd = sqrt(jump_lambda)))
+    lambda.star = rlnorm(1,meanlog = log(lambda.t),sdlog = sqrt(jump_lambda))
+    log_accept.r = log.likeli.l(lambda.star,lambda.t,g.t) - log.likeli.l(lambda.t,lambda.star,g.t)  
+    
+    log.u = log(runif(1))
+    if(log.u < log_accept.r){
+      lambda.t = lambda.star
+      accept_l = accept_l + 1
+    }
+    
+    #sample X.1t-----------------------------------------------------------------
+    ### This can be changed with individual updates!
+    # X.1.star = t(rmvnorm(n = 1,mu = X.1t,sigma = jump_x))
+    # X.1.star = rnorm(n = n,mean = X.1t,sd = sigma.x)
+    # log_accept.r = log.likeli.x(X.1.star) - log.likeli.x(X.1t)
+    # log.u = log(runif(1))
+    # if(log.u < log_accept.r){
+    #   X.1t = X.1.star
+    #   X.t=cbind(1,X.1t)
+    #   accept_x = accept_x + 1
+    # }
+    # Individual version
+    X.1.star = rnorm(n = n,mean = X.1t,sd = sigma.x)
+    log_accept.r.vec = log.likeli.x.i(X.1.star) - log.likeli.x.i(X.1t)
+    log.u.vec = log(runif(n))
+    X.1t[log.u.vec < log_accept.r.vec] = X.1.star[log.u.vec < log_accept.r.vec]
+    accept_x = accept_x + sum(log.u.vec < log_accept.r.vec)
+    X.t=cbind(1,X.1t)
+    
+    #sample sigma2_xx-----------------------------------------------------------------
+    post_ax=0.5*n+prior_ax
+    post_bx=prior_bx+1/2*sum((X.1t-mux.t)^2)
+    sigma2_xx.t=rinvgamma(1,post_ax,post_bx)
+    stopifnot(sigma2_xx.t>0)
+    #cat('accept2\n')
+    
+    #sample sigma2_22-----------------------------------------------------------------
+    #################################################################
+    #### Now it changed because we used W1 & W2 at the same time ####
+    #################################################################
+    post_a2=2*0.5*n+prior_a2 
+    post_b2= prior_b2 + 1/2*sum((W2-X.1t)^2) + 1/2*sum((W1-(X.t%*%t(alpha.t)))^2)
+    sigma2_22.t=rinvgamma(1,post_a2,post_b2)
+    stopifnot(sigma2_22.t>0)
+    #cat('accept4\n')
+    
+    #sample mux-----------------------------------------------------------------
+    post_V_mux = 1/(n/sigma2_xx.t+1/pr_var_mux)
+    post_M_mux = post_V_mux * (sum(X.1t)/sigma2_xx.t+pr_mean_mux/pr_var_mux)
+    mux.t = rnorm(n = 1,mean = post_M_mux,sd = sqrt(post_V_mux))
+    #cat('accept5\n')
+    
+    #sample alpha-----------------------------------------------------------------
+    post_V_alpha = solve(t(X.t)%*%X.t/sigma2_22.t + solve(pr_var_alpha))
+    post_M_alpha = post_V_alpha %*% (t(X.t)%*%W1/sigma2_22.t + solve(pr_var_alpha)%*%pr_mean_alpha)
+    alpha.t = rmvnorm(n = 1, mu = post_M_alpha,sigma = post_V_alpha)
+    #cat('accept6\n')
+    
+    
+    # Save samples in each thin-----------------------------------------------------------------
+    if((iter > nburn) & (iter %% nthin== 0) ){
+      thinned_idx=(iter-nburn)/nthin
+      g_trace[thinned_idx,]=g.t
+      lambda_trace[thinned_idx]=lambda.t
+      sigma2_xx_trace[thinned_idx]=sigma2_xx.t
+      sigma2_22_trace[thinned_idx]=sigma2_22.t
+      mux_trace[thinned_idx]=mux.t
+      alpha_trace[thinned_idx,]=alpha.t
+      X_trace[thinned_idx,] = X.1t
+    }
+  }
+  toc()
+  
+  
+  res_list=list()
+  res_list[['g_trace']]=g_trace
+  res_list[['lambda_trace']]=lambda_trace
+  res_list[['g_accept_ratio']]=accept_g/niter
+  res_list[['l_accept_ratio']]=accept_l/niter
+  res_list[['X_trace']]=X_trace
+  res_list[['x_accept_ratio']]=accept_x/(niter*n)
+  res_list[['alpha_trace']]=alpha_trace
+  res_list[['mux_trace']]=mux_trace
+  res_list[['sigma2_22_trace']]=sigma2_22_trace
+  res_list[['sigma2_xx_trace']]=sigma2_xx_trace
+  res_list[['Knots']]=tau.i
+  res_list[['inp.version']]=inp.version
   return(res_list)
 }
 
