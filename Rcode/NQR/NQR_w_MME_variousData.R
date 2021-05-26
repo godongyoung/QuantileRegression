@@ -41,16 +41,34 @@ sigma2_22=1
 n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
 
-make_data = function(X){
+make_data = function(X,W1.v2=F,W2.v2=F){
   set.seed(sim_idx)
   delta1=rnorm(n,0,sd=sqrt(sigma2_11))
   delta2=rnorm(n,0,sd=sqrt(sigma2_22))
   
   W1=X%*%alpha+delta1
   W2=X[,2]+delta2
+  if(W1.v2){
+    W1 = 1/5*X[,1] + 9/5*X[,2] + 1/5*(X[,2])**2 + delta1
+  }
+  if(W2.v2){
+    W2 = -21 + 9.3*log(X[,2]+10) + delta2
+  }
   
   return(list('W1'=W1, 'W2'=W2))
 }
+
+# for making nonlinear relationship
+# plot(X[,2],W1)
+# plot(X[,2],(1/5*X[,1]+9/5*X[,2]+1/5*(X[,2])**2+delta1))
+# y.tmp = (1/5*X[,1]+9/5*X[,2]+1/5*(X[,2])**2+delta1)
+# lm1 = lm(y.tmp~X[,2])
+# abline(lm1$coefficients)
+# 
+# plot(X[,2],W2)
+# lm(X[,2] ~ I(X[,2]^2) + I(X[,2]^3))
+# plot(X[,2],0.08*X[,1] + -0.0025*X[,2]**2 + 0.056*X[,2]**3+delta2);abline(0,1)
+# plot(X[,2],-21+9.3*log(X[,2]+10)+delta2);abline(0,1)
 
 make_X_shit = function(Mu_x, Xmul){
   if(X_demean){
@@ -65,6 +83,7 @@ sim_idx = 15
 p0 = 0.9
 is.t=''
 data.type=1
+if.W1.scaled=T
 # Loop start #############################################################################################
 
 for(sim_idx in start.idx:end.idx){
@@ -134,18 +153,32 @@ for(sim_idx in start.idx:end.idx){
       tryCatch(
         {
           ## Modeling for each type of data #############################################################################################
-          f_name = sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          
+          # Our model --------------------------
+          {if(if.W1.scaled){
+            f_name = sprintf('../debugging/NQR_data%s_%swME_W1scaled_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            W_list$W1 = (scale(W_list$W1)*sd(W_list$W2))
+          }
+          else{
+            f_name = sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          }}
           if(!file.exists(file=f_name)){
             NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            NQR_res$X_trace = colMeans(NQR_res$X_trace)
+            NQR_res$mux_trace = mean(NQR_res$mux_trace)
+            NQR_res$alpha_trace = colMeans(NQR_res$alpha_trace)
             save(NQR_res, file=f_name)
           }
           
+          # woME model --------------------------
           f_name = sprintf('../debugging/NQR_data%s_%swoME_%s_%s.RData',data.type,is.t,p0,sim_idx)
           if(!file.exists(file=f_name)){
             NQR_wo_ME_res=NQR(y,X,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
             save(NQR_wo_ME_res, file=f_name)
           }
           
+          
+          # naive model --------------------------
           f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)
           if(!file.exists(file=f_name)){
             NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
@@ -158,6 +191,24 @@ for(sim_idx in start.idx:end.idx){
           #     save(NQR_W2_ME_res, file=f_name)
           #   }
           # }
+          
+          # SME model --------------------------
+          f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          if(!file.exists(file=f_name)){
+            NQR_SME_res = NQR_w_SME(y = y,W1 = W_list$W1,W2 = W_list$W2,p0 = p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots,Knots.direct = NA)
+            NQR_SME_res$X_trace = colMeans(NQR_SME_res$X_trace)
+            NQR_SME_res$mux_trace = mean(NQR_SME_res$mux_trace)
+            save(NQR_SME_res, file=f_name)
+          }
+          # MME_cvar model --------------------------
+          f_name = sprintf('../debugging/NQR_data%s_%swME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          if(!file.exists(file=f_name)){
+            NQR_cvar_res = NQR_w_MME_cvar(y = y,W1 = W_list$W1,W2 = W_list$W2,p0 = p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots,Knots.direct = NA)
+            NQR_cvar_res$X_trace = colMeans(NQR_cvar_res$X_trace)
+            NQR_cvar_res$mux_trace = mean(NQR_cvar_res$mux_trace)
+            NQR_cvar_res$alpha_trace = colMeans(NQR_cvar_res$alpha_trace)
+            save(NQR_cvar_res, file=f_name)
+          }
         },
         error = function(e) cat('Error \n'))      
     }
