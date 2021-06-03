@@ -91,8 +91,8 @@ if.W1.scaled=F
 for(sim_idx in start.idx:end.idx){
   if(sim_idx>100){next}
   for(p0 in p0_list){
-    for(data.type in c(1,2,3)){
-    # for(data.type in c(1)){
+    # for(data.type in c(1,2,3)){
+    for(data.type in c(1)){
       
       ## Data Gen #############################################################################################
       if(data.type==1){
