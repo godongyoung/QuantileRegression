@@ -944,7 +944,7 @@ NQR_w_MME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
 }
 
 
-NQR_w_SME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30,Knots.direct=NA){
+NQR_w_SME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots=30,Knots.direct=NA,inp.sigma.g=0.01){
   # Function --------------------------------------------------------------------------------
   log.likeli.g=function(g.t, lambda.t,X.1t){
     y.est=smooth.y(tau.i,g.t,X.1t,version=inp.version)
@@ -1094,7 +1094,8 @@ NQR_w_SME=function(y,W1,W2,p0,inp.min,inp.max,multiply_c=2,inp.version=3,N.Knots
   
   # Set jumping rules --------------------------------------------------------------------------------
   
-  sigma.g=0.01
+  # sigma.g=0.01
+  sigma.g = inp.sigma.g
   sigma.x=0.1
   jump_g=sigma.g^2*diag(N)
   jump_lambda = 1

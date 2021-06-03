@@ -293,7 +293,7 @@ mQR=function(y,X,p0){
 
 
 
-NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1,N.Knots=30){
+NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1,N.Knots=30,inp.sigma.g=0.01){
     # inp.version=3 # version 1 for quick & dirty solution
     
     # Function --------------------------------------------------------------------------------
@@ -374,6 +374,9 @@ NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1,N.Knots=30){
     labmda.b=0.1/lambda0
     labmda.a=lambda0/labmda.b
     
+    # labmda.a=0.1/lambda0
+    # labmda.b=lambda0/labmda.a
+    
     # Make trace --------------------------------------------------------------------------------
     g_trace=matrix(NA,ncol=N,nrow=nmcmc)
     lambda_trace=rep(NA,nmcmc)
@@ -391,8 +394,9 @@ NQR=function(y,X,p0, inp.min,inp.max,inp.version=3, multiply_c=1,N.Knots=30){
     # }
     # plot(sigma_range,FOE)
     
-    sigma=0.01
-    jump_g=sigma^2*diag(N)
+    # sigma.g=0.01
+    sigma.g = inp.sigma.g
+    jump_g=sigma.g^2*diag(N)
     jump_lambda = 1
     
     # iter start --------------------------------------------------------------------------------
