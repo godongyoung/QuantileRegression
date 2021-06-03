@@ -37,10 +37,10 @@ X_demean = T
 
 # sigma2_11=1
 # sigma2_22=1
-sigma2_11=0.8**2
-sigma2_22=1.2**2
-# sigma2_11=1
-# sigma2_22=2
+# sigma2_11=0.8**2
+# sigma2_22=1.2**2
+sigma2_11=1
+sigma2_22=2
 
 n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
@@ -189,32 +189,38 @@ for(sim_idx in start.idx:end.idx){
           #   save(NQR_wo_ME_res, file=f_name)
           # }
           # 
-          # 
           # naive model --------------------------
-          # f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)
-          # if(sigma2_22!=sigma2_11){
-          #   f_name = sprintf('../debugging/NQR_data%s_%sW2_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
-          # }
-          # if(!file.exists(file=f_name)){
-          #   NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-          #   save(NQR_W2_ME_res, file=f_name)
-          # }
-          # if(file.exists(file=f_name)){
-          #   load(f_name)
-          #   if(NQR_W2_ME_res$g_accept_ratio<0.1){
-          #     NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
-          #     save(NQR_W2_ME_res, file=f_name)
-          #   }
-          # }
+          f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          if(sigma2_22!=sigma2_11){
+            f_name = sprintf('../debugging/NQR_data%s_%sW2_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+          }
+          if(!file.exists(file=f_name)){
+            NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            save(NQR_W2_ME_res, file=f_name)
+          }
+          if(file.exists(file=f_name)){
+            load(f_name)
+            if(NQR_W2_ME_res$g_accept_ratio<0.1){
+              NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
+              save(NQR_W2_ME_res, file=f_name)
+            }
+          }
 
           # # SME model --------------------------
-          # f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
-          # if(!file.exists(file=f_name)){
-          #   NQR_SME_res = NQR_w_SME(y = y,W1 = W_list$W1,W2 = W_list$W2,p0 = p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots,Knots.direct = NA)
-          #   NQR_SME_res$X_trace = colMeans(NQR_SME_res$X_trace)
-          #   NQR_SME_res$mux_trace = mean(NQR_SME_res$mux_trace)
-          #   save(NQR_SME_res, file=f_name)
-          # }
+          f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          if(!file.exists(file=f_name)){
+            
+            NQR_SME_res = list()
+            NQR_SME_res$g_accept_ratio = 0
+            # Repeat Fitting until it have higher convergence ratio
+            while(NQR_SME_res$g_accept_ratio>0.1){
+              NQR_SME_res = NQR_w_SME(y = y,W1 = W_list$W1,W2 = W_list$W2,p0 = p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots,Knots.direct = NA,inp.sigma.g = 0.05)
+            }
+          }
+          NQR_SME_res$X_trace = colMeans(NQR_SME_res$X_trace)
+          NQR_SME_res$mux_trace = mean(NQR_SME_res$mux_trace)
+          save(NQR_SME_res, file=f_name)
+          
           # # MME_cvar model --------------------------
           # f_name = sprintf('../debugging/NQR_data%s_%swME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
           # if(!file.exists(file=f_name)){
