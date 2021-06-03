@@ -37,8 +37,10 @@ X_demean = T
 
 # sigma2_11=1
 # sigma2_22=1
-sigma2_11=0.8**2
-sigma2_22=1.2**2
+# sigma2_11=0.8**2
+# sigma2_22=1.2**2
+sigma2_11=1
+sigma2_22=2
 
 n=1000
 p0_list=c(0.1,0.25,0.5,0.75,0.9)
@@ -92,7 +94,7 @@ for(sim_idx in start.idx:end.idx){
   if(sim_idx>100){next}
   for(p0 in p0_list){
     # for(data.type in c(1,2,3)){
-    for(data.type in c(1)){
+    for(data.type in c(3)){
       
       ## Data Gen #############################################################################################
       if(data.type==1){
@@ -102,9 +104,9 @@ for(sim_idx in start.idx:end.idx){
         set.seed(sim_idx)
         inp.sd = 1
         Xmul = 10
+        X_shit = make_X_shit(0.5,Xmul)
         x1 = runif(n,0,1)
         y = sin(12*(x1+0.2))/(x1+0.2) + rt(n,df=3)
-        X_shit = make_X_shit(0.5,Xmul)
         X=cbind(1,x1*Xmul-X_shit)
         Xrange = seq(0-X_shit, 1*Xmul-X_shit,length.out = 100)
         x1range = seq(0, 1,length.out = 100)
@@ -115,6 +117,7 @@ for(sim_idx in start.idx:end.idx){
         }
         W_list = make_data(X)
       }
+
       if(data.type==2){
         is.t=''
         # data2 #############################################################################################
@@ -138,6 +141,8 @@ for(sim_idx in start.idx:end.idx){
       }
       if(data.type==3){
         is.t=''
+        Xmul = 10
+        X_shit = make_X_shit(0.5,Xmul)
         # # An Introduction to Kernel and Nearest-Neighbor Nonparametric Regression #############################################################################################
         set.seed(sim_idx)
         x1 = runif(n,0,1)
@@ -185,20 +190,23 @@ for(sim_idx in start.idx:end.idx){
           # }
           # 
           # 
-          # # naive model --------------------------
-          # f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)
-          # if(!file.exists(file=f_name)){
-          #   NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-          #   save(NQR_W2_ME_res, file=f_name)
+          # naive model --------------------------
+          f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          if(sigma2_22!=sigma2_11){
+            f_name = sprintf('../debugging/NQR_data%s_%sW2_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+          }
+          if(!file.exists(file=f_name)){
+            NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            save(NQR_W2_ME_res, file=f_name)
+          }
+          # if(file.exists(file=f_name)){
+          #   load(f_name)
+          #   if(NQR_W2_ME_res$g_accept_ratio<0.1){
+          #     NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
+          #     save(NQR_W2_ME_res, file=f_name)
+          #   }
           # }
-          # # if(file.exists(file=f_name)){
-          # #   load(f_name)
-          # #   if(NQR_W2_ME_res$g_accept_ratio<0.1){
-          # #     NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
-          # #     save(NQR_W2_ME_res, file=f_name)
-          # #   }
-          # # }
-          # 
+
           # # SME model --------------------------
           # f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
           # if(!file.exists(file=f_name)){
