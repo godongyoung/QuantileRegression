@@ -30,7 +30,7 @@ print(sprintf("start:%s / end:%s",start.idx,end.idx))
 if.short = T
 if.NQR_wo_ME = F
 inp.N.Knots = 30
-inp.mul = 10
+inp.mul = 50
 n=1000
 alpha=c(4,3)
 X_demean = T
@@ -84,9 +84,9 @@ make_X_shit = function(Mu_x, Xmul){
 }
 
 sim_idx = 15
-p0 = 0.9
+p0 = 0.25
 is.t=''
-data.type=1
+data.type=3
 if.W1.scaled=F
 # Loop start #############################################################################################
 
@@ -164,24 +164,24 @@ for(sim_idx in start.idx:end.idx){
           ## Modeling for each type of data #############################################################################################
           
           # Our model --------------------------
-          {if(if.W1.scaled){
-            f_name = sprintf('../debugging/NQR_data%s_%swME_W1scaled_%s_%s.RData',data.type,is.t,p0,sim_idx)
-            W_list$W1 = (scale(W_list$W1)*sd(W_list$W2))
-          }
-          else{
-            f_name = sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx)
-          }}
-          if(sigma2_22!=sigma2_11){
-            f_name = sprintf('../debugging/NQR_data%s_%swME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
-          }
-          if(!file.exists(file=f_name)){
-            NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
-            NQR_res$X_trace = colMeans(NQR_res$X_trace)
-            NQR_res$mux_trace = mean(NQR_res$mux_trace)
-            NQR_res$alpha_trace = colMeans(NQR_res$alpha_trace)
-            save(NQR_res, file=f_name)
-          }
-          
+          # {if(if.W1.scaled){
+          #   f_name = sprintf('../debugging/NQR_data%s_%swME_W1scaled_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          #   W_list$W1 = (scale(W_list$W1)*sd(W_list$W2))
+          # }
+          # else{
+          #   f_name = sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          # }}
+          # if(sigma2_22!=sigma2_11){
+          #   f_name = sprintf('../debugging/NQR_data%s_%swME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+          # }
+          # if(!file.exists(file=f_name)){
+          #   NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+          #   NQR_res$X_trace = colMeans(NQR_res$X_trace)
+          #   NQR_res$mux_trace = mean(NQR_res$mux_trace)
+          #   NQR_res$alpha_trace = colMeans(NQR_res$alpha_trace)
+          #   save(NQR_res, file=f_name)
+          # }
+          # 
           # # woME model --------------------------
           # f_name = sprintf('../debugging/NQR_data%s_%swoME_%s_%s.RData',data.type,is.t,p0,sim_idx)
           # if(!file.exists(file=f_name)){
@@ -195,32 +195,39 @@ for(sim_idx in start.idx:end.idx){
             f_name = sprintf('../debugging/NQR_data%s_%sW2_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
           }
           if(!file.exists(file=f_name)){
-            NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots,inp.sigma.g = 0.0025)
             save(NQR_W2_ME_res, file=f_name)
-          }
-          if(file.exists(file=f_name)){
-            load(f_name)
-            if(NQR_W2_ME_res$g_accept_ratio<0.1){
-              NQR_W2_ME_res=NQR(y,cbind(1,W_list$W2),p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 30,N.Knots = inp.N.Knots)
-              save(NQR_W2_ME_res, file=f_name)
-            }
+            NQR_W2_ME_res$g_accept_ratio
           }
 
           # # SME model --------------------------
-          f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx) # with inp.sigma.g = 0.01
+          f_name = sprintf('../debugging/NQR_data%s_%swSME_%s_%s.RData',data.type,is.t,p0,sim_idx) # with inp.sigma.g = 0.0025, inp.mul = 10
+          f_name = sprintf('../debugging/NQR_data%s_%swSME_mul%s_%s_%s.RData',data.type,is.t,inp.mul,p0,sim_idx)
+          cheat.fname = sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+          if(sigma2_22!=sigma2_11){
+            f_name = sprintf('../debugging/NQR_data%s_%swSME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx) # with inp.sigma.g = 0.0025, inp.mul = 10
+            f_name = sprintf('../debugging/NQR_data%s_%swSME_sig1%s_sig2%s_mul%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,inp.mul,p0,sim_idx)
+            cheat.fname = sprintf('../debugging/NQR_data%s_%swME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+          }          
           if(!file.exists(file=f_name)){
-            
             NQR_SME_res = list()
             NQR_SME_res$g_accept_ratio = 0
             # Repeat Fitting until it have higher convergence ratio
-            while(NQR_SME_res$g_accept_ratio>0.1){
-              NQR_SME_res = NQR_w_SME(y = y,W1 = W_list$W1,W2 = W_list$W2,p0 = p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots,Knots.direct = NA,inp.sigma.g = 0.05)
+            while(NQR_SME_res$g_accept_ratio<0.05){
+              
+              NQR_SME_res = NQR_w_SME(y = y,W1 = W_list$W1,W2 = W_list$W2,p0 = p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = 100,N.Knots = inp.N.Knots,Knots.direct = NA,
+                                      inp.sigma.g = 0.0025, g0.cheat.fname = cheat.fname)
             }
+            NQR_SME_res$X_trace = colMeans(NQR_SME_res$X_trace)
+            NQR_SME_res$mux_trace = mean(NQR_SME_res$mux_trace)
+            save(NQR_SME_res, file=f_name)
           }
-          NQR_SME_res$X_trace = colMeans(NQR_SME_res$X_trace)
-          NQR_SME_res$mux_trace = mean(NQR_SME_res$mux_trace)
-          save(NQR_SME_res, file=f_name)
+
           
+          NQR_SME_res$g_accept_ratio
+          points(NQR_SME_res$Knots,colMeans(NQR_SME_res$g_trace))
+          HPD_ratio(NQR_SME_res$g_trace)
           # # MME_cvar model --------------------------
           # f_name = sprintf('../debugging/NQR_data%s_%swME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
           # if(!file.exists(file=f_name)){
@@ -235,3 +242,169 @@ for(sim_idx in start.idx:end.idx){
     }
   }
 }
+
+
+# Function --------------------------------------------------------------------------------
+smooth.y=function(knots,g.tau,xout,version=1){
+  if(version==1){
+    mspline=spline(x = knots,y = g.tau,xout = xout)
+    y.est=mspline$y
+  }
+  if(version==2){
+    msmooth.spline=smooth.spline(x = knots,y = g.tau,cv = NA,lambda = lambda.t)
+    mspline=predict(msmooth.spline,xout)
+    y.est=mspline$y
+  }
+  if(version==3){
+    g.tau=as.numeric(g.tau)
+    fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+    y.est=predict(fit.ns, data.frame(knots=xout))
+  }
+  return(y.est)
+}
+
+tmp.p0 = 0.9
+gen_y.p0 = function(data.type,tmp.p0){
+  if(data.type==1){
+    x1range = seq(0, 1,length.out = N)
+    y.p0 = sin(12*(x1range+0.2))/(x1range+0.2) 
+    res = y.p0 + qt(tmp.p0,df=3)
+  }
+  if(data.type==2){
+    x1range = seq(0, 1,length.out = N)
+    y.p0 = sin(10*x1range)
+    res = y.p0 + (x1range+0.25)/(0.1)*qnorm(tmp.p0,0,inp.sd)
+  }
+  if(data.type==3){
+    x1range = seq(0, 1,length.out = N)
+    y.p0 = x1range*sin(2.5*pi*x1range) 
+    res = y.p0 + qnorm(p = tmp.p0,mean = 0,sd = inp.sd)
+  }
+  return(res)
+}
+save_data = g_save;type='wME'
+m.boxplot=function(save_data,p0,type,data.type,inp.sub=NA){
+  valid_cnt = sum(!(is.na(save_data[,1])))
+  
+  colnames(save_data)=Knots
+  ds=cbind(rep(Knots,each=dim(save_data)[1]),as.numeric(save_data))
+  colnames(ds)=c('Knots','value')
+  
+  if(data.type==1){inp.ylim = c(-5,5)}
+  if(data.type==2){inp.ylim = c(-3,3)}
+  if(data.type==3){inp.ylim = c(-1.5,2)}
+  
+  
+  boxplot(value~Knots, data=ds,ylim=inp.ylim,main=sprintf('%s\'s Box plot of %s with Knots %s for %s simulation',type,p0,inp.N.Knots,valid_cnt),names = round(Knots,1),
+          sub=inp.sub) 
+  for(tmp.p0 in p0_list){
+    y.p0 = gen_y.p0(data.type,tmp.p0)
+    points(seq(1:length(Knots)),y.p0,type='l',lwd=2,col=3)
+  }
+  y.p0 = gen_y.p0(data.type,p0)
+  points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
+}
+
+library(ggplot2)
+library(MASS)
+
+# df = data.frame(cbind(matrix(save_data,ncol=1),as.factor(rep(Knots[1:30],each = 500))))
+# colnames(df) = c('g','Knots')
+# df$Knots = as.factor(df$Knots)
+# str(df)
+# ggplot(df, aes(x = Knots, y = g)) + 
+#   geom_boxplot(width=0.8) +
+#   ggtitle("Box Plot by Car Type")
+
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+save_data = g_save
+save_data_list = g_save_list
+m.boxplo.v2=function(save_data_list,p0,data.type){
+  par(mfrow = c(1,1))
+  fname = sprintf('../Figure/data%s_%s.png',data.type,p0)
+  tiff(fname, units="in", width=6*1.5, height=4*1.5, res=600)
+  
+  if(data.type==1){inp.ylim = c(-5,5)}
+  if(data.type==2){inp.ylim = c(-3,3)}
+  if(data.type==3){inp.ylim = c(-1.5,2)}
+  
+  
+  plot(NA,NA,xlim=c(-5,5),ylim=inp.ylim,xlab = 'X', ylab = 'y')
+  for(tmp.p0 in p0_list){
+    y.p0 = gen_y.p0(data.type,tmp.p0)
+    points(Knots,y.p0,type='l',lwd=1,lty='dotted',col=alpha(1, alpha = 0.5))
+  }
+  y.p0 = gen_y.p0(data.type,p0)
+  points(Knots,y.p0,type='l',lwd=2,col=1)
+  
+  for(each in c('woME','wME','W2')){
+    g_mean = colMeans(save_data_list[[each]],na.rm = T)
+    if(each=='woME'){tmp.lty='twodash';tmp.col=gg_color_hue(3)[1]}
+    if(each=='wME'){tmp.lty='longdash';tmp.col=gg_color_hue(3)[2]}
+    if(each=='W2'){tmp.lty='dotdash';tmp.col=gg_color_hue(3)[3]}
+    points(Knots,g_mean,type='l',col=tmp.col,lty = tmp.lty,lwd=2)
+    
+    # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
+    # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
+    # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
+  }
+  # legend(4, 2.8, legend=c('woME','wME','W2'),
+  #        col=2, lty=c('twodash','longdash','dotdash'), cex=1,lwd=2)
+  
+  dev.off()
+}
+
+
+HPD_ratio = function(g_trace,lb=0.025,ub=0.975){
+  g_quantile = apply(g_trace,MARGIN = 2,FUN = function(x) quantile(x ,probs = c(lb,ub)))
+  y.p0 = gen_y.p0(data.type,tmp.p0 = p0 )
+  diff_mat = (g_quantile)-matrix(rep(y.p0,each = 2),nrow=2)
+  HPD_include = (sign(diff_mat[1,]) * sign(diff_mat[2,]) ) == rep(-1,N)
+  return(mean(HPD_include))
+}
+
+make_X_shit = function(Mu_x, Xmul){
+  if(X_demean){
+    X_shit = Mu_x*Xmul
+  }
+  else{X_shit = 0}
+  return(X_shit)
+}
+
+true.g.func = function(inp.x,tmp.p0 = p0){
+  if(data.type==1){
+    inp.x = (inp.x+X_shit)/Xmul
+    y.p0 = sin(12*(inp.x+0.2))/(inp.x+0.2) 
+    res = y.p0 + qt(tmp.p0,df=3)
+  }
+  if(data.type==2){
+    inp.x = (inp.x+X_shit)/Xmul
+    y.p0 = sin(10*inp.x) 
+    res = y.p0 + (inp.x+0.25)/(0.1)*qnorm(tmp.p0,0,inp.sd)
+  }
+  if(data.type==3){
+    inp.x = (inp.x+X_shit)/Xmul
+    y.p0 = inp.x*sin(2.5*pi*inp.x) 
+    res = y.p0 + qnorm(p = tmp.p0,mean = 0,sd = inp.sd)
+  }
+  return(res)
+}
+
+ise_func = function(x){
+  # return (((true.g.func(x)-est.g.func(x))/sd(true.g.func(integral_range)))**2)
+  return ((true.g.func(x)-est.g.func(x))**2)
+}
+
+# g.tau=as.numeric(g.est);knots = Knots
+# fit.ns <- lm(g.tau~ ns(x = knots, knots = knots[-c(1,N)]) )
+# y.est=predict(fit.ns, data.frame(knots=integral_range))
+est.g.func = function(inp.x){
+  predict(fit.ns, data.frame(knots=inp.x))
+}
+# save_data = g_save;type='wME';data.type=1
+
+# Define True parameter--------------------------------------------------------------------------------

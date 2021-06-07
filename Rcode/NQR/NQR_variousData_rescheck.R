@@ -53,8 +53,8 @@ gen_y.p0 = function(data.type,tmp.p0){
   }
   return(res)
 }
-
-m.boxplot=function(save_data,p0,type,data.type){
+save_data = g_save;type='wME'
+m.boxplot=function(save_data,p0,type,data.type,inp.sub=NA){
   valid_cnt = sum(!(is.na(save_data[,1])))
   
   colnames(save_data)=Knots
@@ -66,7 +66,8 @@ m.boxplot=function(save_data,p0,type,data.type){
   if(data.type==3){inp.ylim = c(-1.5,2)}
   
   
-  boxplot(value~Knots, data=ds,ylim=inp.ylim,main=sprintf('%s\'s Box plot of %s with Knots %s for %s simulation',type,p0,inp.N.Knots,valid_cnt),names = round(Knots,1)) 
+  boxplot(value~Knots, data=ds,ylim=inp.ylim,main=sprintf('%s\'s Box plot of %s with Knots %s for %s simulation',type,p0,inp.N.Knots,valid_cnt),names = round(Knots,1),
+          sub=inp.sub) 
   for(tmp.p0 in p0_list){
     y.p0 = gen_y.p0(data.type,tmp.p0)
     points(seq(1:length(Knots)),y.p0,type='l',lwd=2,col=3)
@@ -74,6 +75,60 @@ m.boxplot=function(save_data,p0,type,data.type){
   y.p0 = gen_y.p0(data.type,p0)
   points(seq(1:length(Knots)),y.p0,type='l',lwd=3,col=2)
 }
+
+library(ggplot2)
+library(MASS)
+
+# df = data.frame(cbind(matrix(save_data,ncol=1),as.factor(rep(Knots[1:30],each = 500))))
+# colnames(df) = c('g','Knots')
+# df$Knots = as.factor(df$Knots)
+# str(df)
+# ggplot(df, aes(x = Knots, y = g)) + 
+#   geom_boxplot(width=0.8) +
+#   ggtitle("Box Plot by Car Type")
+
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+save_data = g_save
+save_data_list = g_save_list
+m.boxplo.v2=function(save_data_list,p0,data.type){
+  par(mfrow = c(1,1))
+  fname = sprintf('../Figure/data%s_%s.png',data.type,p0)
+  tiff(fname, units="in", width=6*1.5, height=4*1.5, res=600)
+  
+  if(data.type==1){inp.ylim = c(-5,5)}
+  if(data.type==2){inp.ylim = c(-3,3)}
+  if(data.type==3){inp.ylim = c(-1.5,2)}
+  
+  
+  plot(NA,NA,xlim=c(-5,5),ylim=inp.ylim,xlab = 'X', ylab = 'y')
+  for(tmp.p0 in p0_list){
+    y.p0 = gen_y.p0(data.type,tmp.p0)
+    points(Knots,y.p0,type='l',lwd=1,lty='dotted',col=alpha(1, alpha = 0.5))
+  }
+  y.p0 = gen_y.p0(data.type,p0)
+  points(Knots,y.p0,type='l',lwd=2,col=1)
+  
+  for(each in c('woME','wME','W2')){
+    g_mean = colMeans(save_data_list[[each]],na.rm = T)
+    if(each=='woME'){tmp.lty='twodash';tmp.col=gg_color_hue(3)[1]}
+    if(each=='wME'){tmp.lty='longdash';tmp.col=gg_color_hue(3)[2]}
+    if(each=='W2'){tmp.lty='dotdash';tmp.col=gg_color_hue(3)[3]}
+    points(Knots,g_mean,type='l',col=tmp.col,lty = tmp.lty,lwd=2)
+    
+    # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
+    # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
+    # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
+  }
+  # legend(4, 2.8, legend=c('woME','wME','W2'),
+  #        col=2, lty=c('twodash','longdash','dotdash'), cex=1,lwd=2)
+  
+  dev.off()
+}
+
 
 HPD_ratio = function(g_trace,lb=0.025,ub=0.975){
   g_quantile = apply(g_trace,MARGIN = 2,FUN = function(x) quantile(x ,probs = c(lb,ub)))
@@ -127,14 +182,24 @@ est.g.func = function(inp.x){
 n=1000
 alpha=c(4,3)
 
+# sigma2_11=1
+# sigma2_22=1
+# sigma2_11=0.8**2
+# sigma2_22=1.2**2
 sigma2_11=1
-sigma2_22=1
+sigma2_22=2
 
 # Simulation start --------------------------------------------------------------------------------
-nmax=500
+nmax=100
+if(sigma2_22!=sigma2_11){
+  nmax=100
+}
 
 is.plot=F
-to_see_list = c('wME','woME','W2')
+to_see_list = c('wME','woME','W2','SME')
+# to_see_list = c('wME')
+# to_see_list = c('wME','woME')
+# to_see_list = c('wME','SME','cvar','woME','W2')
 to_see = to_see_list[1]
 inp.N.Knots = 30
 inp.mul = 10
@@ -150,12 +215,6 @@ cal_MSE = T
 # Simulation check --------------------------------------------------------------------------------
 
 
-alpha_save = matrix(NA,ncol=2,nrow=nmax)
-X_save=matrix(NA,ncol=n,nrow=nmax)
-mux_save=rep(NA,nmax)
-sigma2_11_save=rep(NA,nmax)
-sigma2_22_save=rep(NA,nmax)
-sigma2_xx_save=rep(NA,nmax)
 
 
 n=1000
@@ -163,7 +222,7 @@ p0_list=c(0.1,0.25,0.5,0.75,0.9)
 p0=0.1
 sim_idx=1
 
-data.type = 2
+data.type = 3
 is.t=''
 inp.sd = 1
 if(data.type==1){
@@ -176,12 +235,17 @@ if(data.type==3){
   inp.sd = 0.5  
 }
 
+to_see_list = c('SME')
+to_see_list = c('W2')
+to_see = to_see_list[2]
+
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
 par(mfrow=c(length(to_see_list),1))
-for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
+for(p0 in p0_list){
+# for(p0 in c(0.1)){
+  g_save_list = list()
   for(to_see in to_see_list){
-    
     # Define save matrix for current setting------------------------------------------------------------------------------------------
     
     accept_g_save = rep(NA,nmax)
@@ -189,6 +253,15 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
     HPD_save = rep(NA,nmax)
     ISE_save = rep(NA,nmax)
     MSE_save = rep(NA,nmax)
+    g_var_save = rep(NA,nmax)
+    
+    alpha_save = matrix(NA,ncol=2,nrow=nmax)
+    X_save=matrix(NA,ncol=n,nrow=nmax)
+    mux_save=rep(NA,nmax)
+    sigma2_11_save=rep(NA,nmax)
+    sigma2_22_save=rep(NA,nmax)
+    sigma2_xx_save=rep(NA,nmax)
+    
     
     summary_list[[as.character(p0)]][[to_see]][['ISE']]=list()
     summary_list[[as.character(p0)]][[to_see]][['HPD']]=list()
@@ -201,23 +274,71 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
         {
           
           if(to_see == 'wME'){
-            load(file=sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx))
+            f_name = sprintf('../debugging/NQR_data%s_%swME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            if(sigma2_22!=sigma2_11){
+              f_name = sprintf('../debugging/NQR_data%s_%swME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+            }
+            load(file= f_name)
             g.est=colMeans(NQR_res$g_trace)
             Knots = NQR_res$Knots
-            alpha.est=colMeans(NQR_res$alpha_trace)
-            X.est=colMeans(NQR_res$X_trace)
+            if(is.null(dim(NQR_res$alpha_trace))){
+              alpha_save[sim_idx,]=(NQR_res$alpha_trace)
+            }
+            else{
+              alpha_save[sim_idx,]=colMeans(NQR_res$alpha_trace)
+            }
+            # X.est=colMeans(NQR_res$X_trace)
             mux.est=mean(NQR_res$mux_trace)
             sigma2_11.est=mean(NQR_res$sigma2_11_trace)
             sigma2_22.est=mean(NQR_res$sigma2_22_trace)
             sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
+            sigma2_11_save[sim_idx] = sigma2_11.est
+            sigma2_22_save[sim_idx] = sigma2_22.est
+            sigma2_xx_save[sim_idx] = sigma2_xx.est
             
             g_save[sim_idx,]=g.est
             accept_g_save[sim_idx]=NQR_res$g_accept_ratio
             HPD_save[sim_idx] = HPD_ratio(NQR_res$g_trace)
           }
           
+          if(to_see == 'SME'){
+            f_name = sprintf('../debugging/NQR_data%s_%swSME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx) # with inp.sigma.g = 0.01
+            f_name = sprintf('../debugging/NQR_data%s_%swSME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            if(sigma2_22!=sigma2_11){
+              f_name = sprintf('../debugging/NQR_data%s_%swSME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+            }
+            load(file=f_name)
+
+            g.est = colMeans(NQR_SME_res$g_trace) 
+            Knots = NQR_SME_res$Knots
+            mux.est=mean(NQR_SME_res$mux_trace)
+            sigma2_22.est=mean(NQR_SME_res$sigma2_22_trace)
+            sigma2_xx.est=mean(NQR_SME_res$sigma2_xx_trace)
+            sigma2_22_save[sim_idx] = sigma2_22.est
+            sigma2_xx_save[sim_idx] = sigma2_xx.est
+            
+            g_save[sim_idx,]=g.est
+            accept_g_save[sim_idx]=NQR_SME_res$g_accept_ratio
+            HPD_save[sim_idx] = HPD_ratio(NQR_SME_res$g_trace)
+            g_var_save[sim_idx] = median(colVars(NQR_SME_res$g_trace))
+          }
+          
+          if(to_see == 'cvar'){
+            f_name = sprintf('../debugging/NQR_data%s_%swME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            load(file=f_name)
+            
+            g.est = colMeans(NQR_cvar_res$g_trace) 
+            Knots = NQR_cvar_res$Knots
+            
+            alpha_save[sim_idx,]=NQR_cvar_res$alpha_trace
+            g_save[sim_idx,]=g.est
+            accept_g_save[sim_idx]=NQR_cvar_res$g_accept_ratio
+            HPD_save[sim_idx] = HPD_ratio(NQR_cvar_res$g_trace)
+          }
+          
           if(to_see == 'woME'){
             load(file=sprintf('../debugging/NQR_data%s_%swoME_%s_%s.RData',data.type,is.t,p0,sim_idx))
+            
             
             g.est = colMeans(NQR_wo_ME_res$g_trace) 
             Knots = NQR_wo_ME_res$Knots
@@ -230,7 +351,11 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
           
           
           if(to_see == 'W2'){
-            load(file=sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx))
+            f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            if(sigma2_22!=sigma2_11){
+              f_name = sprintf('../debugging/NQR_data%s_%sW2_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+            }
+            load(file = f_name)
             
             g.est = colMeans(NQR_W2_ME_res$g_trace) 
             Knots = NQR_W2_ME_res$Knots
@@ -239,6 +364,7 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
             g_save[sim_idx,]=g.est
             accept_g_save[sim_idx]=NQR_W2_ME_res$g_accept_ratio
             HPD_save[sim_idx] = HPD_ratio(NQR_W2_ME_res$g_trace)
+            g_var_save[sim_idx] = median(colVars(NQR_W2_ME_res$g_trace))
           }
           
           g.tau=as.numeric(g.est);knots = Knots
@@ -274,21 +400,41 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
             par(mfrow=c(1,1))
           }
         },
-        error = function(e) cat(sim_idx,'of',p0,'is not done yet. \n'))
+        error = function(e) print(e))
     }
     toc()
     
+    colMeans(alpha_save)
+    mean(sigma2_11_save) # 0.2, true value is 1
+    mean(sigma2_22_save) # 2.0, which is true value
+    mean(sigma2_xx_save) 
+    summary(accept_g_save)
     
     # Calculate the summary statistics from iterated result------------------------------------------------------------------------------------------
     nconverge_idx=which(accept_g_save<0.1)
+    # if((to_see=='SME')|(to_see=='cvar')){
+    # if((to_see=='cvar')){
+    #   nconverge_idx=which(accept_g_save<0.01)
+    # }
     if(length(nconverge_idx)==0){
       nconverge_idx = nmax+1
     }
-    if((to_see=='W2')&(length(nconverge_idx)>200)){
+    if(to_see=='W2'){
       nconverge_idx = nmax+1
     }
-    m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type)
-
+    
+    
+    inp.sub = NA
+    if(to_see=='wME'){
+      inp.sub = sprintf('alpha: %s,%s, sig1^2: %s, sig^2: %s',round(colMeans(alpha_save),3)[1],round(colMeans(alpha_save),3)[2],round(mean(sigma2_11_save),3),round(mean(sigma2_22_save),3))
+    }
+    if((to_see=='W2')|(to_see=='SME')){
+      inp.sub = sprintf('g accept: %s, g_var: %s,sig2: %s',round(median(accept_g_save,na.rm = T),3),round(mean(g_var_save,na.rm = T),6),round(mean(sigma2_22_save,na.rm = T),3))
+    }
+    
+    m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type,inp.sub = inp.sub)  
+    g_save_list[[to_see]]=g_save[-nconverge_idx,]
+    
     summary_list[[as.character(p0)]][[to_see]][['ISE']][['mean']] = mean(ISE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['ISE']][['sd']] = sd(ISE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['HPD']][['mean']] = mean(HPD_save[-nconverge_idx],na.rm = T)
@@ -296,9 +442,12 @@ for(p0 in c(0.1,0.25,0.5,0.75,0.9)){
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['mean']] = mean(MSE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['sd']] = sd(MSE_save[-nconverge_idx],na.rm = T)
   }
+  
+  # m.boxplo.v2(g_save_list,p0,data.type)
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
+
 
 
 # Make larger data for Ground Truth--------------------------------------------------------------------------------
@@ -433,14 +582,6 @@ mean(NQR_res$sigma2_11_trace)
 mean(NQR_res$sigma2_22_trace)
 mean(NQR_res$sigma2_xx_trace)
 X.est = colMeans(NQR_res$X_trace)
-colMeans(NQR_res$alpha_trace)
-alpha
-set.seed(sim_idx)
-x1 = runif(n,-4,2.5)
-plot(X.est,x1)
-
-
-
 
 HPD_ratio(NQR_res$g_trace)
 
