@@ -181,6 +181,8 @@ est.g.func = function(inp.x){
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
 alpha=c(4,3)
+beta=-c(3,5)
+theta=c(5,-5)
 
 # sigma2_11=1
 # sigma2_22=1
@@ -188,6 +190,8 @@ alpha=c(4,3)
 # sigma2_22=1.2**2
 sigma2_11=1
 sigma2_22=2
+sigma2_33=1.5
+sigma2_44=1
 
 # Simulation start --------------------------------------------------------------------------------
 nmax=100
@@ -202,7 +206,7 @@ to_see_list = c('wME','woME','W2','SME')
 # to_see_list = c('wME','SME','cvar','woME','W2')
 to_see = to_see_list[1]
 inp.N.Knots = 30
-inp.mul = 10
+inp.mul = 50
 N = inp.N.Knots
 
 
@@ -235,13 +239,15 @@ if(data.type==3){
   inp.sd = 0.5  
 }
 
-to_see_list = c('SME')
-to_see_list = c('W2')
-to_see = to_see_list[2]
+# to_see_list = c('SME')
+to_see_list = c('wME')
+# to_see_list = c('W2')
+to_see = to_see_list[1]
 
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
-par(mfrow=c(length(to_see_list),1))
+if(length(to_see_list)>1){par(mfrow=c(length(to_see_list),1))}
+
 for(p0 in p0_list){
 # for(p0 in c(0.1)){
   g_save_list = list()
@@ -256,10 +262,14 @@ for(p0 in p0_list){
     g_var_save = rep(NA,nmax)
     
     alpha_save = matrix(NA,ncol=2,nrow=nmax)
+    beta_save = matrix(NA,ncol=2,nrow=nmax)
+    theta_save = matrix(NA,ncol=2,nrow=nmax)
     X_save=matrix(NA,ncol=n,nrow=nmax)
     mux_save=rep(NA,nmax)
     sigma2_11_save=rep(NA,nmax)
     sigma2_22_save=rep(NA,nmax)
+    sigma2_33_save=rep(NA,nmax)
+    sigma2_44_save=rep(NA,nmax)
     sigma2_xx_save=rep(NA,nmax)
     
     
@@ -306,6 +316,9 @@ for(p0 in p0_list){
             f_name = sprintf('../debugging/NQR_data%s_%swSME_%s_%s.RData',data.type,is.t,p0,sim_idx)
             if(sigma2_22!=sigma2_11){
               f_name = sprintf('../debugging/NQR_data%s_%swSME_sig1%s_sig2%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,p0,sim_idx)
+              if(inp.mul!=10){
+                f_name = sprintf('../debugging/NQR_data%s_%swSME_sig1%s_sig2%s_mul%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,inp.mul,p0,sim_idx)
+              }
             }
             load(file=f_name)
 
@@ -322,6 +335,82 @@ for(p0 in p0_list){
             HPD_save[sim_idx] = HPD_ratio(NQR_SME_res$g_trace)
             g_var_save[sim_idx] = median(colVars(NQR_SME_res$g_trace))
           }
+          
+          if(to_see == '3ME'){
+            f_name = sprintf('../debugging/NQR_data%s_%s3ME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            if(sigma2_22!=sigma2_11){
+              f_name = sprintf('../debugging/NQR_data%s_%s3ME_sig1%s_sig2%s_sig3%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,sigma2_33,p0,sim_idx)
+            }
+            load(file=f_name)
+            
+            g.est = colMeans(NQR_3ME_res$g_trace) 
+            Knots = NQR_3ME_res$Knots
+            mux.est=mean(NQR_3ME_res$mux_trace)
+            alpha_save[sim_idx,] = colMeans(NQR_3ME_res$alpha_trace)
+            beta_save[sim_idx,] = colMeans(NQR_3ME_res$beta_trace)
+
+            sigma2_11_save[sim_idx] = mean(NQR_3ME_res$sigma2_11_trace)
+            sigma2_22_save[sim_idx] = mean(NQR_3ME_res$sigma2_22_trace)
+            sigma2_33_save[sim_idx] = mean(NQR_3ME_res$sigma2_33_trace)
+            sigma2_xx_save[sim_idx] = mean(NQR_3ME_res$sigma2_xx_trace)
+            
+            g_save[sim_idx,]=g.est
+            accept_g_save[sim_idx]=NQR_3ME_res$g_accept_ratio
+            HPD_save[sim_idx] = HPD_ratio(NQR_3ME_res$g_trace)
+            g_var_save[sim_idx] = median(colVars(NQR_3ME_res$g_trace))
+          }
+          
+          if(to_see == '4ME'){
+            f_name = sprintf('../debugging/NQR_data%s_%s4ME_%s_%s.RData',data.type,is.t,p0,sim_idx)
+            if(sigma2_22!=sigma2_11){
+              f_name = sprintf('../debugging/NQR_data%s_%s4ME_sig1%s_sig2%s_sig3%s_%s_%s.RData',data.type,is.t,sigma2_11,sigma2_22,sigma2_33,p0,sim_idx)
+            }
+            load(file=f_name)
+            
+            g.est = colMeans(NQR_4ME_res$g_trace) 
+            Knots = NQR_4ME_res$Knots
+            mux.est=mean(NQR_4ME_res$mux_trace)
+            alpha_save[sim_idx,] = colMeans(NQR_4ME_res$alpha_trace)
+            beta_save[sim_idx,] = colMeans(NQR_4ME_res$beta_trace)
+            theta_save[sim_idx,] = colMeans(NQR_4ME_res$theta_trace)
+            
+            sigma2_11_save[sim_idx] = mean(NQR_4ME_res$sigma2_11_trace)
+            sigma2_22_save[sim_idx] = mean(NQR_4ME_res$sigma2_22_trace)
+            sigma2_33_save[sim_idx] = mean(NQR_4ME_res$sigma2_33_trace)
+            sigma2_44_save[sim_idx] = mean(NQR_4ME_res$sigma2_44_trace)
+            sigma2_xx_save[sim_idx] = mean(NQR_4ME_res$sigma2_xx_trace)
+            
+            g_save[sim_idx,]=g.est
+            accept_g_save[sim_idx]=NQR_4ME_res$g_accept_ratio
+            HPD_save[sim_idx] = HPD_ratio(NQR_4ME_res$g_trace)
+            g_var_save[sim_idx] = median(colVars(NQR_4ME_res$g_trace))
+          }
+          # {
+          #   par(mfrow=c(1,1))
+          #   is.t=''
+          #   Xmul = 10
+          #   X_shit = make_X_shit(0.5,Xmul)
+          #   # # An Introduction to Kernel and Nearest-Neighbor Nonparametric Regression #############################################################################################
+          #   set.seed(sim_idx)
+          #   x1 = runif(n,0,1)
+          #   inp.sd = 0.5
+          #   y = x1*sin(2.5*pi*x1) + rnorm(n,0,inp.sd)
+          #   X=cbind(1,x1*Xmul-X_shit)
+          #   Xrange = seq(-5, 5,length.out = 100)
+          #   x1range = seq(0, 1,length.out = 100)
+          #   plot(X[,2],y)
+          #   for(p0.tmp in p0_list){
+          #     y.p0 = x1range*sin(2.5*pi*x1range) + qnorm(p0.tmp,0,inp.sd)
+          #     points(Xrange,y.p0,col=2,lwd=2,type='l')
+          #   }
+          #   points(NQR_SME_res$Knots,colMeans(NQR_SME_res$g_trace),type = 'l',col=2,lwd=3)
+          # }
+          # plot(X[,2],NQR_SME_res$X_trace)
+          # plot(NQR_SME_res$X_trace,y)
+          # ts.plot(NQR_SME_res$g_trace[,1])
+          # ts.plot(NQR_SME_res$sigma2_22_trace)
+          # ts.plot(NQR_SME_res$sigma2_xx_trace)
+          
           
           if(to_see == 'cvar'){
             f_name = sprintf('../debugging/NQR_data%s_%swME_cvar_%s_%s.RData',data.type,is.t,p0,sim_idx)
@@ -426,10 +515,30 @@ for(p0 in p0_list){
     
     inp.sub = NA
     if(to_see=='wME'){
-      inp.sub = sprintf('alpha: %s,%s, sig1^2: %s, sig^2: %s',round(colMeans(alpha_save),3)[1],round(colMeans(alpha_save),3)[2],round(mean(sigma2_11_save),3),round(mean(sigma2_22_save),3))
+      inp.sub = sprintf('alpha: %s,%s, sig1^2: %s, sig2^2: %s',round(colMeans(alpha_save),3)[1],round(colMeans(alpha_save),3)[2],round(mean(sigma2_11_save),3),round(mean(sigma2_22_save),3))
     }
     if((to_see=='W2')|(to_see=='SME')){
       inp.sub = sprintf('g accept: %s, g_var: %s,sig2: %s',round(median(accept_g_save,na.rm = T),3),round(mean(g_var_save,na.rm = T),6),round(mean(sigma2_22_save,na.rm = T),3))
+    }
+    if(to_see=='3ME'){
+      inp.sub = sprintf('alpha: %s,%s,beta: %s,%s, sig1^2: %s, sig2^2: %s, sig3^2: %s',
+                        round(colMeans(alpha_save,na.rm = T),3)[1],
+                        round(colMeans(alpha_save,na.rm = T),3)[2],
+                        round(colMeans(beta_save,na.rm = T),3)[1],
+                        round(colMeans(beta_save,na.rm = T),3)[2],
+                        round(mean(sigma2_11_save,na.rm = T),3),round(mean(sigma2_22_save,na.rm = T),3),round(mean(sigma2_33_save,na.rm = T),3))
+    }
+    
+    if(to_see=='4ME'){
+      inp.sub = sprintf('alpha: %s,%s,beta: %s,%s, theta: %s,%s, sig1^2: %s, sig2^2: %s, sig3^2: %s, sig4^2: %s',
+                        round(colMeans(alpha_save,na.rm = T),3)[1],
+                        round(colMeans(alpha_save,na.rm = T),3)[2],
+                        round(colMeans(beta_save,na.rm = T),3)[1],
+                        round(colMeans(beta_save,na.rm = T),3)[2],
+                        round(colMeans(theta_save,na.rm = T),3)[1],
+                        round(colMeans(theta_save,na.rm = T),3)[2],
+                        round(mean(sigma2_11_save,na.rm = T),3),round(mean(sigma2_22_save,na.rm = T),3),
+                        round(mean(sigma2_33_save,na.rm = T),3),round(mean(sigma2_44_save,na.rm = T),3))
     }
     
     m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type,inp.sub = inp.sub)  
@@ -447,145 +556,3 @@ for(p0 in p0_list){
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
-
-
-
-# Make larger data for Ground Truth--------------------------------------------------------------------------------
-set.seed(sim_idx)
-n=1e4
-# x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sigma2_xx)
-x1i=runif(n=n,min=0,max=2*Mu_x)
-x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
-X=cbind(1,x1i)
-X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-y=2+sin(x1i)+rnorm(n,0,0.1)
-
-#generate W1,W2
-delta1=rnorm(n,0,sd=sqrt(sigma2_11))
-delta2=rnorm(n,0,sd=sqrt(sigma2_22))
-
-W1=X%*%alpha+delta1
-W2=X[,2]+delta2
-
-
-# Check result --------------------------------------------------------------------------------
-nconverge_idx=which(accept_g_save<0.1)
-hist(accept_g_save[-nconverge_idx])
-
-
-par(mfrow=c(4,2))
-plot(X[,2],y,main='X vs Y, with g.est');points(tau.i,colMedians(g_save[-nconverge_idx,],na.rm = T),type='l',col=2,lwd=3)
-plot(X[,2],W1,main="X vs W1 with alpha.est");abline(colMedians(alpha_save[-nconverge_idx,],na.rm=T),col=2,lwd=3)
-
-hist(alpha_save[-nconverge_idx,1],nclass=100);abline(v=alpha[1],col=2,lwd=3)
-hist(alpha_save[-nconverge_idx,2],nclass=100);abline(v=alpha[2],col=2,lwd=3)
-
-hist(mux_save[-nconverge_idx],nclass=100);abline(v=Mu_x,col=2,lwd=3)
-hist(sigma2_11_save[-nconverge_idx],nclass=100);abline(v=sigma2_11,col=2,lwd=3)
-hist(sigma2_22_save[-nconverge_idx],nclass=100);abline(v=sigma2_22,col=2,lwd=3)
-hist(sigma2_xx_save[-nconverge_idx],nclass=100);abline(v=sigma2_xx,col=2,lwd=3)
-par(mfrow=c(1,1))
-
-
-# mean(mux_save,na.rm = T)
-# median(sigma2_11_save,na.rm = T)
-# hist(sigma2_11_save,nclass=100)
-# mean(sigma2_22_save,na.rm = T)
-# mean(sigma2_xx_save,na.rm = T)
-
-# Debugging weired result --------------------------------------------------------------------------------
-sim_idx=254
-sim_idx=3
-condition = which(abs(alpha_save[,2])>10)
-condition = which(abs(alpha_save[,2])<10)
-
-for(idx in 1:length(condition)){
-  sim_idx=condition[idx]
-  # sim_idx=idx
-  if(sim_idx %in% nconverge_idx){next}
-  
-  load(file=sprintf('../debugging/NQR_%s_%s.RData',p0,sim_idx))
-  alpha.est=colMeans(NQR_res$alpha_trace)
-  g.est=colMeans(NQR_res$g_trace)
-  X.est=colMeans(NQR_res$X_trace)
-  mux.est=mean(NQR_res$mux_trace)
-  sigma2_11.est=mean(NQR_res$sigma2_11_trace)
-  sigma2_22.est=mean(NQR_res$sigma2_22_trace)
-  sigma2_xx.est=mean(NQR_res$sigma2_xx_trace)
-  
-  
-  set.seed(sim_idx)
-  n=1000
-  # x1i=rtruncnorm(n = n,a = 0,b = 2*Mu_x,mean=Mu_x,sd=sigma2_xx)
-  x1i=runif(n=n,min=0,max=2*Mu_x)
-  x1i=rnorm(n,Mu_x,sqrt(sigma2_xx))
-  X=cbind(1,x1i)
-  X_range=seq(from = min(X[,2]),to = max(X[,2]),length.out = 1000)
-  inp.sd=1
-  y=2+sin(x1i)+rnorm(n,0,inp.sd)
-  
-  #generate W1,W2
-  delta1=rnorm(n,0,sd=sqrt(sigma2_11))
-  delta2=rnorm(n,0,sd=sqrt(sigma2_22))
-  
-  W1=X%*%alpha+delta1
-  W2=X[,2]+delta2
-  
-  # par(mfrow=c(4,2))
-  # plot(X.est,X[,2],main='X.est Vs X with y=x line');abline(0,1)
-  # plot(X.est,W1,main='X.est Vs W1 with alpha.est');abline(alpha.est)
-  # plot(X.est,W2,main='X.est Vs W2 with y=x line');abline(0,1)
-  # plot(X.est,y,main='X.est Vs Y with beta.est');points(tau.i,g.est,type='l',col=2,lwd=3)
-  # 
-  # hist(NQR_res$sigma2_11_trace,nclass=100);abline(v=sigma2_11,col=2,lwd=3)
-  # hist(NQR_res$sigma2_22_trace,nclass=100);abline(v=sigma2_22,col=2,lwd=3)
-  # hist(NQR_res$sigma2_xx_trace,nclass=100);abline(v=sigma2_xx,col=2,lwd=3)
-  # 
-  # ts.plot(NQR_res$sigma2_22_trace)
-  # par(mfrow=c(1,1))
-  
-  NQR_res$g_accept_ratio
-  NQR_res$l_accept_ratio
-  NQR_res$x_accept_ratio
-  sigma2_11.est
-  sigma2_22.est
-  sigma2_xx.est
-  
-  par(mfrow=c(3,2))
-  ts.plot(NQR_res$g_trace[,1],main=sim_idx)
-  ts.plot(NQR_res$alpha_trace[,1])
-  ts.plot(NQR_res$X_trace[,1])
-  ts.plot(NQR_res$sigma2_11_trace)
-  ts.plot(NQR_res$sigma2_22_trace)
-  ts.plot(NQR_res$sigma2_xx_trace)
-  par(mfrow=c(1,1))
-  
-  accept_g_save[condition]
-  
-  median(accept_g_save,na.rm = T)
-  
-}
-# sim_idx=condition[1]
-
-
-par(mfrow=c(1,1))
-NQR_res$g_accept_ratio
-NQR_res$x_accept_ratio
-ts.plot(NQR_res$g_trace[,1])
-acf(NQR_res$g_trace[,1])
-ts.plot(NQR_res$X_trace[,1])
-acf(NQR_res$X_trace[,1])
-NQR_res$l_accept_ratio
-mean(NQR_res$lambda_trace)
-mean(NQR_res$mux_trace)
-mean(NQR_res$sigma2_11_trace)
-mean(NQR_res$sigma2_22_trace)
-mean(NQR_res$sigma2_xx_trace)
-X.est = colMeans(NQR_res$X_trace)
-
-HPD_ratio(NQR_res$g_trace)
-
-boxplot(g_save)
-points(seq(1,30),(g_quantile)[1,],type='l')
-points(seq(1,30),(g_quantile)[2,],type='l')
-points(seq(1,30),y.p0,type='l')
