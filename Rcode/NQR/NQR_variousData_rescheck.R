@@ -96,8 +96,8 @@ save_data = g_save
 save_data_list = g_save_list
 m.boxplo.v2=function(save_data_list,p0,data.type){
   par(mfrow = c(1,1))
-  fname = sprintf('../Figure/data%s_%s.png',data.type,p0)
-  tiff(fname, units="in", width=6*1.5, height=4*1.5, res=600)
+  fname = sprintf('../Figure/data%s_%s_v2.png',data.type,p0)
+  png(fname, units="in", width=6*1.5, height=4*1.5, res=600)
   
   if(data.type==1){inp.ylim = c(-5,5)}
   if(data.type==2){inp.ylim = c(-3,3)}
@@ -110,20 +110,24 @@ m.boxplo.v2=function(save_data_list,p0,data.type){
     points(Knots,y.p0,type='l',lwd=1,lty='dotted',col=alpha(1, alpha = 0.5))
   }
   y.p0 = gen_y.p0(data.type,p0)
-  points(Knots,y.p0,type='l',lwd=2,col=1)
+  points(Knots,y.p0,type='l',lwd=1,col=1)
   
-  for(each in c('woME','wME','W2')){
+  for(each in c('wME','W2','woME')){
     g_mean = colMeans(save_data_list[[each]],na.rm = T)
-    if(each=='woME'){tmp.lty='twodash';tmp.col=gg_color_hue(3)[1]}
-    if(each=='wME'){tmp.lty='longdash';tmp.col=gg_color_hue(3)[2]}
-    if(each=='W2'){tmp.lty='dotdash';tmp.col=gg_color_hue(3)[3]}
-    points(Knots,g_mean,type='l',col=tmp.col,lty = tmp.lty,lwd=2)
+    # if(each=='woME'){tmp.lty='twodash';tmp.col=gg_color_hue(3)[1]}
+    # if(each=='wME'){tmp.lty='longdash';tmp.col=gg_color_hue(3)[2]}
+    # if(each=='W2'){tmp.lty='dotdash';tmp.col=gg_color_hue(3)[3]}
+    # points(Knots,g_mean,type='l',col=tmp.col,lty = tmp.lty,lwd=2)
+    if(each=='woME'){tmp.col=gg_color_hue(3)[1]}
+    if(each=='wME'){tmp.col=gg_color_hue(3)[2]}
+    if(each=='W2'){tmp.col=gg_color_hue(3)[3]}
+    points(Knots,g_mean,type='l',col=tmp.col,lwd=2.5)
     
     # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
     # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
     # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
   }
-  # legend(4, 2.8, legend=c('woME','wME','W2'),
+  # legend(4, 2.8, legend=c('woME','wME','Naive'),
   #        col=2, lty=c('twodash','longdash','dotdash'), cex=1,lwd=2)
   
   dev.off()
@@ -184,17 +188,17 @@ alpha=c(4,3)
 beta=-c(3,5)
 theta=c(5,-5)
 
-# sigma2_11=1
-# sigma2_22=1
+sigma2_11=1
+sigma2_22=1
 # sigma2_11=0.8**2
 # sigma2_22=1.2**2
-sigma2_11=1
-sigma2_22=2
-sigma2_33=1.5
-sigma2_44=1
+# sigma2_11=1
+# sigma2_22=2
+# sigma2_33=1.5
+# sigma2_44=1
 
 # Simulation start --------------------------------------------------------------------------------
-nmax=100
+nmax=500
 if(sigma2_22!=sigma2_11){
   nmax=100
 }
@@ -202,7 +206,7 @@ if(sigma2_22!=sigma2_11){
 is.plot=F
 to_see_list = c('wME','woME','W2','SME')
 # to_see_list = c('wME')
-# to_see_list = c('wME','woME')
+to_see_list = c('wME','woME','W2')
 # to_see_list = c('wME','SME','cvar','woME','W2')
 to_see = to_see_list[1]
 inp.N.Knots = 30
@@ -226,7 +230,7 @@ p0_list=c(0.1,0.25,0.5,0.75,0.9)
 p0=0.1
 sim_idx=1
 
-data.type = 3
+data.type = 2
 is.t=''
 inp.sd = 1
 if(data.type==1){
@@ -240,7 +244,7 @@ if(data.type==3){
 }
 
 # to_see_list = c('SME')
-to_see_list = c('wME')
+# to_see_list = c('wME')
 # to_see_list = c('W2')
 to_see = to_see_list[1]
 
@@ -493,11 +497,11 @@ for(p0 in p0_list){
     }
     toc()
     
-    colMeans(alpha_save)
-    mean(sigma2_11_save) # 0.2, true value is 1
-    mean(sigma2_22_save) # 2.0, which is true value
-    mean(sigma2_xx_save) 
-    summary(accept_g_save)
+    # colMeans(alpha_save)
+    # mean(sigma2_11_save) # 0.2, true value is 1
+    # mean(sigma2_22_save) # 2.0, which is true value
+    # mean(sigma2_xx_save) 
+    # summary(accept_g_save)
     
     # Calculate the summary statistics from iterated result------------------------------------------------------------------------------------------
     nconverge_idx=which(accept_g_save<0.1)
@@ -541,7 +545,9 @@ for(p0 in p0_list){
                         round(mean(sigma2_33_save,na.rm = T),3),round(mean(sigma2_44_save,na.rm = T),3))
     }
     
-    m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type,inp.sub = inp.sub)  
+    m.boxplot(g_save[-nconverge_idx,],p0,
+              type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3))
+              ,data.type = data.type,inp.sub = inp.sub)  
     g_save_list[[to_see]]=g_save[-nconverge_idx,]
     
     summary_list[[as.character(p0)]][[to_see]][['ISE']][['mean']] = mean(ISE_save[-nconverge_idx],na.rm = T)
@@ -552,7 +558,7 @@ for(p0 in p0_list){
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['sd']] = sd(MSE_save[-nconverge_idx],na.rm = T)
   }
   
-  # m.boxplo.v2(g_save_list,p0,data.type)
+  m.boxplo.v2(g_save_list,p0,data.type)
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
