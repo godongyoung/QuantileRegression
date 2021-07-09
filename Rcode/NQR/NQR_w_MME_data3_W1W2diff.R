@@ -196,14 +196,14 @@ sim_idx = 15
 p0 = 0.1
 is.t=''
 data.type=3
-W1.V2=T;W2.V2=F
+W1.V2=T;W2.V2=T
 inp.version = 2
 # Loop start #############################################################################################
 # plot(X[,2],W_list$W2);abline(0,1)
 # plot(X[,2],W_list$W1);abline(lm(W_list$W1~X[,2])$coeff)
 for(sim_idx in start.idx:end.idx){
   for(p0 in p0_list){
-    for(inp.version in c(1)){ 
+    for(inp.version in c(1,2,3)){ 
       # if(W1.W2.case==1){W1.V2=T;W2.V2=F}
       # if(W1.W2.case==2){W1.V2=F;W2.V2=T}
       # if(W1.W2.case==3){W1.V2=T;W2.V2=T}
@@ -229,12 +229,25 @@ for(sim_idx in start.idx:end.idx){
         W_list = make_data(X,W1.V2,W2.V2,version = inp.version)
       }
       
+      
+      
       tryCatch(
         {
           ## Modeling for each type of data #############################################################################################
-          f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
+          if(W1.V2&W2.V2){
+            f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
+          }
+          else{
+            f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
+          }
           if(!file.exists(file=f_name)){
-            NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            # Previous Version
+            # NQR_res = NQR_w_MME(y,W_list$W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            
+            # Scaled W1 Version
+            scaled_W1 = (scale(W_list$W1)*sd(W_list$W2))
+            NQR_res = NQR_w_MME(y,scaled_W1,W_list$W2,p0,inp.min = -5,inp.max = 5,inp.version = 1,multiply_c = inp.mul,N.Knots = inp.N.Knots)
+            
             NQR_res$X_trace = colMeans(NQR_res$X_trace)
             NQR_res$mux_trace = mean(NQR_res$mux_trace)
             NQR_res$alpha_trace = colMeans(NQR_res$alpha_trace)

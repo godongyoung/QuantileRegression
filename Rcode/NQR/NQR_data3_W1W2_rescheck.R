@@ -232,10 +232,10 @@ sigma2_11=1
 sigma2_22=1
 
 # Simulation start --------------------------------------------------------------------------------
-nmax=500
+nmax=100
 
 is.plot=F
-to_see_list = c('wME','woME','W2')
+to_see_list = c('wME_v1','wME_v2','wME_v3','woME','W2')
 to_see = to_see_list[1]
 inp.N.Knots = 30
 inp.mul = 10
@@ -277,8 +277,10 @@ if(data.type==3){
 # if(W1.W2.case==1){W1.V2=T;W2.V2=F}
 # if(W1.W2.case==2){W1.V2=F;W2.V2=T}
 # if(W1.W2.case==3){W1.V2=T;W2.V2=T}
-W1.V2=T;W2.V2=F
+W1.V2=T;W2.V2=T
 inp.version = 1
+
+
 
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
@@ -304,7 +306,11 @@ for(p0 in c(0.9)){
     for(sim_idx in 1:nmax){  
       tryCatch(
         {
-          if(to_see == 'wME'){
+          if(grepl( 'wME', to_see, fixed = TRUE)){
+            if(to_see=='wME_v1'){inp.version =1 }
+            if(to_see=='wME_v2'){inp.version =2 }
+            if(to_see=='wME_v3'){inp.version =3 }
+            
             #####
             # set.seed(sim_idx)
             # x1 = runif(n,0,1)
@@ -314,7 +320,8 @@ for(p0 in c(0.9)){
               f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
             }
             else{
-              f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
+              # f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
+              f_name = sprintf('../debugging/NQR_data%s_W1%s_W2%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,is.t,p0,sim_idx)
             }
             
             load(file=f_name)
@@ -433,7 +440,7 @@ for(p0 in c(0.9)){
     }
     m.boxplot(g_save[-nconverge_idx,],p0,type=paste(to_see,'HPD:',round(mean(HPD_save[-nconverge_idx],na.rm = T),3),',MISE:',round(mean(ISE_save[-nconverge_idx],na.rm = T),3)),data.type = data.type)
     g_save_list[[to_see]]=g_save[-nconverge_idx,]
-    
+
     summary_list[[as.character(p0)]][[to_see]][['ISE']][['mean']] = mean(ISE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['ISE']][['sd']] = sd(ISE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['HPD']][['mean']] = mean(HPD_save[-nconverge_idx],na.rm = T)
@@ -454,79 +461,79 @@ cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
 #        col=c(gg_color_hue(3)[1],gg_color_hue(3)[2],gg_color_hue(3)[3]), lty=c('twodash','longdash','dotdash'), cex=2,lwd=2)
 # dev.off()
 
-# Check X.true & X.est for 'wME'------------------------------------------------------------------------------------------
-sim_idx = 1
-X.true = X_save2[sim_idx,]
-X.est = X_save[sim_idx,]
-plot(X.true,X.est,main=sprintf('X.true Vs X.est Ver%s',inp.version));abline(0,1)
-
-
-# Check plot of X & W1 or X & W2------------------------------------------------------------------------------------------
-
-make_data = function(X,W1.v2=F,W2.v2=F,version=1){
-  set.seed(sim_idx)
-  delta1=rnorm(n,0,sd=sqrt(sigma2_11))
-  delta2=rnorm(n,0,sd=sqrt(sigma2_22))
-  
-  W1=X%*%alpha+delta1
-  W2=X[,2]+delta2
-  if(W1.v2){
-    if(version==1){
-      tmp.seed=8
-      set.seed(tmp.seed)
-      a = runif(1,1/15,1/10)
-      b = runif(1,1/6,1/3)
-      d = runif(1,-5,5)
-      c = runif(1,3,6)
-      W1 = (a*X[,2]**3 + b*X[,2]**2 + d*X[,2] -c)*1/4 + delta1
-    }
-    if(version==2){
-      tmp.seed=5
-      set.seed(tmp.seed) #1, 9
-      a = runif(1,min = 3,max = 5)
-      b = -1*runif(1,1/10,1/5)
-      c = runif(1,-3,3)
-      W1 = b*(X[,2]-a)**2+c*X[,2]+delta1
-    }
-    if(version==3){
-      W1 = 1/5*X[,1] + 9/5*X[,2] + 1/5*(X[,2])**2 + delta1
-    }
-  }
-  if(W2.v2){
-    if(version==1){
-      tmp.seed=8
-      set.seed(tmp.seed) #
-      a = runif(1,min = 9.25,max = 9.35)
-      b = runif(1,9.5,10.5)
-      c = -runif(1,20.5,21.5)
-      W2 = a*log(X[,2]+b) + c+ delta2
-    }
-    
-    if(version==2){
-      tmp.seed=8
-      set.seed(tmp.seed) #1, 8
-      a = runif(1,min = 5,max = 15)
-      b = runif(1,5,25)
-      tmp = a*log(X[,2]+b) + delta2
-      c = min(tmp)+ifelse(tmp.seed==1,6,8)
-      W2 = tmp-c
-    }
-    if(version==3){
-      W2 = -21 + 9.3*log(X[,2]+10) + delta2
-    }
-  }
-  
-  return(list('W1'=W1, 'W2'=W2))
-}
-
-
-
-
-set.seed(1)
-x1 = runif(n,0,1)
-X=cbind(1,x1*Xmul-X_shit)
-inp.version = 3
-W_list = make_data(X,W1.V2,W2.V2,version = inp.version)
-plot(X[,2],W_list$W1,main = sprintf('X = a0 + a1*W2 + e in Ver%s',inp.version));abline(lm(W_list$W1~X[,2])$coeff)
-plot(X[,2],W_list$W2,main = sprintf('X = W1 + e in Ver%s',inp.version));abline(0,1)
-
+# # Check X.true & X.est for 'wME'------------------------------------------------------------------------------------------
+# sim_idx = 1
+# X.true = X_save2[sim_idx,]
+# X.est = X_save[sim_idx,]
+# plot(X.true,X.est,main=sprintf('X.true Vs X.est Ver%s',inp.version));abline(0,1)
+# 
+# 
+# # Check plot of X & W1 or X & W2------------------------------------------------------------------------------------------
+# 
+# make_data = function(X,W1.v2=F,W2.v2=F,version=1){
+#   set.seed(sim_idx)
+#   delta1=rnorm(n,0,sd=sqrt(sigma2_11))
+#   delta2=rnorm(n,0,sd=sqrt(sigma2_22))
+#   
+#   W1=X%*%alpha+delta1
+#   W2=X[,2]+delta2
+#   if(W1.v2){
+#     if(version==1){
+#       tmp.seed=8
+#       set.seed(tmp.seed)
+#       a = runif(1,1/15,1/10)
+#       b = runif(1,1/6,1/3)
+#       d = runif(1,-5,5)
+#       c = runif(1,3,6)
+#       W1 = (a*X[,2]**3 + b*X[,2]**2 + d*X[,2] -c)*1/4 + delta1
+#     }
+#     if(version==2){
+#       tmp.seed=5
+#       set.seed(tmp.seed) #1, 9
+#       a = runif(1,min = 3,max = 5)
+#       b = -1*runif(1,1/10,1/5)
+#       c = runif(1,-3,3)
+#       W1 = b*(X[,2]-a)**2+c*X[,2]+delta1
+#     }
+#     if(version==3){
+#       W1 = 1/5*X[,1] + 9/5*X[,2] + 1/5*(X[,2])**2 + delta1
+#     }
+#   }
+#   if(W2.v2){
+#     if(version==1){
+#       tmp.seed=8
+#       set.seed(tmp.seed) #
+#       a = runif(1,min = 9.25,max = 9.35)
+#       b = runif(1,9.5,10.5)
+#       c = -runif(1,20.5,21.5)
+#       W2 = a*log(X[,2]+b) + c+ delta2
+#     }
+#     
+#     if(version==2){
+#       tmp.seed=8
+#       set.seed(tmp.seed) #1, 8
+#       a = runif(1,min = 5,max = 15)
+#       b = runif(1,5,25)
+#       tmp = a*log(X[,2]+b) + delta2
+#       c = min(tmp)+ifelse(tmp.seed==1,6,8)
+#       W2 = tmp-c
+#     }
+#     if(version==3){
+#       W2 = -21 + 9.3*log(X[,2]+10) + delta2
+#     }
+#   }
+#   
+#   return(list('W1'=W1, 'W2'=W2))
+# }
+# 
+# 
+# 
+# 
+# set.seed(1)
+# x1 = runif(n,0,1)
+# X=cbind(1,x1*Xmul-X_shit)
+# inp.version = 3
+# W_list = make_data(X,W1.V2,W2.V2,version = inp.version)
+# plot(X[,2],W_list$W1,main = sprintf('X = a0 + a1*W2 + e in Ver%s',inp.version));abline(lm(W_list$W1~X[,2])$coeff)
+# plot(X[,2],W_list$W2,main = sprintf('X = W1 + e in Ver%s',inp.version));abline(0,1)
+# 
