@@ -277,16 +277,16 @@ if(data.type==3){
 # if(W1.W2.case==1){W1.V2=T;W2.V2=F}
 # if(W1.W2.case==2){W1.V2=F;W2.V2=T}
 # if(W1.W2.case==3){W1.V2=T;W2.V2=T}
-W1.V2=T;W2.V2=T
+W1.V2=T;W2.V2=F
 inp.version = 1
 
 
-
+# to_see_list = c('wME_v1','woME','W2')
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
 par(mfrow=c(length(to_see_list),1))
 # for(p0 in p0_list){
-for(p0 in c(0.9)){
+for(p0 in c(0.1)){
   g_save_list = list()
   for(to_see in to_see_list){
     # Define save matrix for current setting------------------------------------------------------------------------------------------
@@ -320,8 +320,8 @@ for(p0 in c(0.9)){
               f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
             }
             else{
-              # f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
-              f_name = sprintf('../debugging/NQR_data%s_W1%s_W2%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,is.t,p0,sim_idx)
+              f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
+              # f_name = sprintf('../debugging/NQR_data%s_W1%s_W2%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,is.t,p0,sim_idx)
             }
             
             load(file=f_name)
@@ -372,9 +372,9 @@ for(p0 in c(0.9)){
           
           
           if(to_see == 'W2'){
-            if(W1.V2&W2.V2){
-              f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%sW2_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)   
-            }
+            # if(W1.V2&W2.V2){
+            #   f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%sW2_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)   
+            # }
             if(W2.V2==FALSE){
               f_name = sprintf('../debugging/NQR_data%s_%sW2_%s_%s.RData',data.type,is.t,p0,sim_idx)   
             }
