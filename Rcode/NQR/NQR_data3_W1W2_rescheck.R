@@ -178,51 +178,84 @@ gg_color_hue <- function(n) {
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
+
 save_data_list = g_save_list
 m.boxplo.v2=function(save_data_list,p0,data.type,save=T){
+  
+  
   if(W1.V2&W2.V2){
     f_name = sprintf('../Figure/data%s_W1W2_%s.png',data.type,p0)
-  }
-  else{
-    f_name = sprintf('../Figure/data%s_W1%sW2%s_ver%s_%s.png',data.type,W1.V2,W2.V2,inp.version,p0)
-  }
-  
-  # tiff(fname, units="in", width=6*1.5, height=4*1.5, res=600)
-  if(save){
-    png( f_name, width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 13)  
-  }
-  par(mfrow = c(1,1), mar = c(4,4,1,4))
-  if(data.type==1){inp.ylim = c(-5,5)}
-  if(data.type==2){inp.ylim = c(-3,3)}
-  if(data.type==3){inp.ylim = c(-1.5,2)}
-  
-  
-  plot(NA,NA,xlim=c(-5,5),ylim=inp.ylim,xlab = 'X', ylab = 'y')
-  for(tmp.p0 in p0_list){
-    y.p0 = gen_y.p0(data.type,tmp.p0)
-    points(Knots,y.p0,type='l',lwd=1,lty='dotted',col=alpha(1, alpha = 0.5))
-  }
-  y.p0 = gen_y.p0(data.type,p0)
-  points(Knots,y.p0,type='l',lwd=2,col=1)
-  
-  for(each in c('woME','wME','W2')){
-    g_mean = colMeans(save_data_list[[each]],na.rm = T)
-    if(each=='woME'){tmp.lty='twodash';tmp.col=gg_color_hue(3)[1]}
-    if(each=='wME'){tmp.lty='longdash';tmp.col=gg_color_hue(3)[2]}
-    if(each=='W2'){tmp.lty='dotdash';tmp.col=gg_color_hue(3)[3]}
-    points(Knots,g_mean,type='l',col=tmp.col,lty = tmp.lty,lwd=2)
+    if(save){
+      png( f_name, width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 20)  
+    }
+    par(mfrow = c(1,1), mar = c(4,4,1,1)/2)
+    if(data.type==1){inp.ylim = c(-5,5)}
+    if(data.type==2){inp.ylim = c(-3,3)}
+    if(data.type==3){inp.ylim = c(-1.5,2)}
+
+    plot(NA,NA,xlim=c(-5,5),ylim=inp.ylim,xlab = 'X', ylab = 'y')
+    for(tmp.p0 in p0_list){
+      y.p0 = gen_y.p0(data.type,tmp.p0)
+      points(Knots,y.p0,type='l',lwd=1,lty='dotted',col=alpha(1, alpha = 0.5))
+    }
+    y.p0 = gen_y.p0(data.type,p0)
+    points(Knots,y.p0,type='l',lwd=1,col=1)
     
-    # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
-    # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
-    # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
+    gg_color_hue_res = gg_color_hue(length(to_see_list))
+    for(idx in 1:length(to_see_list)){
+      each = to_see_list[idx]
+      g_mean = colMeans(save_data_list[[each]],na.rm = T)
+      tmp.col=gg_color_hue_res[idx]
+      points(Knots,g_mean,type='l',col=tmp.col,lwd=2)
+      
+      # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
+      # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
+      # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
+    }
+    legend(-5.1, inp.ylim[2], legend=to_see_list,
+           col=gg_color_hue_res, cex=0.9,lwd=2)   
   }
-  # legend(1.5, inp.ylim[2]*2.8/3, legend=c('woME','wME','W2'),
-  #        col=c(gg_color_hue(3)[1],gg_color_hue(3)[2],gg_color_hue(3)[3]), lty=c('twodash','longdash','dotdash'), cex=1.6,lwd=2)
+  if(!(W1.V2&W2.V2)){
+    f_name = sprintf('../Figure/data%s_W1%sW2%s_all_%s.png',data.type,W1.V2,W2.V2,p0)
+    
+    if(save){
+      png( f_name, width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 13)  
+    }
+    par(mfrow = c(1,1), mar = c(4,4,1,4))
+    if(data.type==1){inp.ylim = c(-5,5)}
+    if(data.type==2){inp.ylim = c(-3,3)}
+    if(data.type==3){inp.ylim = c(-1.5,2)}
+    
+    plot(NA,NA,xlim=c(-5,5),ylim=inp.ylim,xlab = 'X', ylab = 'y')
+    for(tmp.p0 in p0_list){
+      y.p0 = gen_y.p0(data.type,tmp.p0)
+      points(Knots,y.p0,type='l',lwd=1,lty='dotted',col=alpha(1, alpha = 0.5))
+    }
+    y.p0 = gen_y.p0(data.type,p0)
+    points(Knots,y.p0,type='l',lwd=1,col=1)
+    
+    gg_color_hue_res = gg_color_hue(length(to_see_list))
+    gg_color_hue_res = c(gg_color_hue_res[3],gg_color_hue_res[2],gg_color_hue_res[5],gg_color_hue_res[1],gg_color_hue_res[4])
+    for(idx in 1:length(to_see_list)){
+      each = to_see_list[idx]
+      g_mean = colMeans(save_data_list[[each]],na.rm = T)
+      tmp.col=gg_color_hue_res[idx]
+      points(Knots,g_mean,type='l',col=tmp.col,lwd=2)
+      
+      # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
+      # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
+      # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
+    }
+    legend(-5.1, inp.ylim[2], legend=to_see_list,
+           col=gg_color_hue_res, cex=0.9,lwd=2)   
+  }
+  
   if(save){
     dev.off()
   }
   
 }
+getwd()
 
 # Define True parameter--------------------------------------------------------------------------------
 n=1000
@@ -232,10 +265,12 @@ sigma2_11=1
 sigma2_22=1
 
 # Simulation start --------------------------------------------------------------------------------
-nmax=100
+nmax=500 
 
 is.plot=F
-to_see_list = c('wME_v1','wME_v2','wME_v3','woME','W2')
+to_see_list = c('woME','wME','W2')
+# to_see_list = c('wME_v1','wME_v2','wME_v3','woME','W2')
+# to_see_list = c('wME_v1','wME_v2','wME_v3','W2_v1','W2_v2','W2_v3')
 to_see = to_see_list[1]
 inp.N.Knots = 30
 inp.mul = 10
@@ -277,16 +312,18 @@ if(data.type==3){
 # if(W1.W2.case==1){W1.V2=T;W2.V2=F}
 # if(W1.W2.case==2){W1.V2=F;W2.V2=T}
 # if(W1.W2.case==3){W1.V2=T;W2.V2=T}
-W1.V2=T;W2.V2=F
+W1.V2=T;W2.V2=T
 inp.version = 1
+
+
 
 
 # to_see_list = c('wME_v1','woME','W2')
 summary_list = list()
 par(mfrow=c(length(p0_list),1))
 par(mfrow=c(length(to_see_list),1))
-# for(p0 in p0_list){
-for(p0 in c(0.1)){
+for(p0 in p0_list){
+# for(p0 in c(0.9)){
   g_save_list = list()
   for(to_see in to_see_list){
     # Define save matrix for current setting------------------------------------------------------------------------------------------
@@ -306,6 +343,10 @@ for(p0 in c(0.1)){
     for(sim_idx in 1:nmax){  
       tryCatch(
         {
+        if(grepl( 'v1', to_see, fixed = TRUE)){inp.version =1 }
+        if(grepl( 'v2', to_see, fixed = TRUE)){inp.version =2 }
+        if(grepl( 'v3', to_see, fixed = TRUE)){inp.version =3 }
+          
           if(grepl( 'wME', to_see, fixed = TRUE)){
             if(to_see=='wME_v1'){inp.version =1 }
             if(to_see=='wME_v2'){inp.version =2 }
@@ -318,6 +359,7 @@ for(p0 in c(0.1)){
             #####
             if(W1.V2&W2.V2){
               f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
+              # f_name = sprintf('../debugging/NQR_data%s_W1W2_Nscaled_ver%s_%swME_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)
             }
             else{
               f_name = sprintf('../debugging/NQR_data%s_W1%sW2%s_ver%s_%swME_%s_%s.RData',data.type,W1.V2,W2.V2,inp.version,is.t,p0,sim_idx)
@@ -371,7 +413,7 @@ for(p0 in c(0.1)){
           }
           
           
-          if(to_see == 'W2'){
+          if(grepl( 'W2', to_see, fixed = TRUE)){
             # if(W1.V2&W2.V2){
             #   f_name = sprintf('../debugging/NQR_data%s_W1W2_ver%s_%sW2_%s_%s.RData',data.type,inp.version,is.t,p0,sim_idx)   
             # }
@@ -448,7 +490,7 @@ for(p0 in c(0.1)){
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['mean']] = mean(MSE_save[-nconverge_idx],na.rm = T)
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['sd']] = sd(MSE_save[-nconverge_idx],na.rm = T)
   }
-  # m.boxplo.v2(g_save_list,p0,data.type,save = F)
+  m.boxplo.v2(g_save_list,p0,data.type,save = T)
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
