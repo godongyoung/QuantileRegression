@@ -94,11 +94,14 @@ gg_color_hue <- function(n) {
 
 save_data = g_save
 save_data_list = g_save_list
-m.boxplo.v2=function(save_data_list,p0,data.type){
+m.boxplo.v2=function(save_data_list,p0,data.type,save=T){
   par(mfrow = c(1,1))
   fname = sprintf('../Figure/data%s_%s_v2.png',data.type,p0)
-  png(fname, units="in", width=6*1.5, height=4*1.5, res=600)
-  
+  fname = sprintf('../Figure/data%s_%s_v3.png',data.type,p0)
+  if(save){
+    png( f_name, width = 6*1.5, height=4*1.5, units = "in", res = 600, pointsize = 20)  
+  }
+  par(mfrow = c(1,1), mar = c(4,4,1,1)/2)
   if(data.type==1){inp.ylim = c(-5,5)}
   if(data.type==2){inp.ylim = c(-3,3)}
   if(data.type==3){inp.ylim = c(-1.5,2)}
@@ -114,23 +117,18 @@ m.boxplo.v2=function(save_data_list,p0,data.type){
   
   for(each in c('wME','W2','woME')){
     g_mean = colMeans(save_data_list[[each]],na.rm = T)
-    # if(each=='woME'){tmp.lty='twodash';tmp.col=gg_color_hue(3)[1]}
-    # if(each=='wME'){tmp.lty='longdash';tmp.col=gg_color_hue(3)[2]}
-    # if(each=='W2'){tmp.lty='dotdash';tmp.col=gg_color_hue(3)[3]}
-    # points(Knots,g_mean,type='l',col=tmp.col,lty = tmp.lty,lwd=2)
     if(each=='woME'){tmp.col=gg_color_hue(3)[1]}
     if(each=='wME'){tmp.col=gg_color_hue(3)[2]}
     if(each=='W2'){tmp.col=gg_color_hue(3)[3]}
-    points(Knots,g_mean,type='l',col=tmp.col,lwd=2.5)
+    points(Knots,g_mean,type='l',col=tmp.col,lwd=2)
     
-    # g_quantile = apply(save_data_list[[each]],MARGIN = 2,FUN = function(x) quantile(x ,probs = c(0.025,0.975),na.rm = T))
-    # points(Knots,g_quantile[1,],type='l',col=2,lty='dotted')
-    # points(Knots,g_quantile[2,],type='l',col=2,lty='dotted')
   }
   # legend(4, 2.8, legend=c('woME','wME','Naive'),
   #        col=2, lty=c('twodash','longdash','dotdash'), cex=1,lwd=2)
   
-  dev.off()
+  if(save){
+    dev.off()
+  }
 }
 
 
