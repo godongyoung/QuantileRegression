@@ -556,7 +556,7 @@ for(p0 in p0_list){
     summary_list[[as.character(p0)]][[to_see]][['MSE']][['sd']] = sd(MSE_save[-nconverge_idx],na.rm = T)
   }
   
-  m.boxplo.v2(g_save_list,p0,data.type)
+  m.boxplo.v2(g_save_list,p0,data.type,save=T)
 }
 par(mfrow=c(1,1))
 cat(sum(is.na(g_save[,1]))/nmax*100,'% is not yout done\n')
